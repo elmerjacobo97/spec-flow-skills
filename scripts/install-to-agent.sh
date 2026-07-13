@@ -5,7 +5,7 @@ set -euo pipefail
 # adapted to the format expected by the chosen agent.
 #
 # Usage: install-to-agent.sh <agent>
-#   agent: claude | cursor | codex | antigravity
+#   agent: claude | cursor | codex | antigravity | opencode
 #
 # Run this from inside the target repo (the one that will *use* the skills).
 
@@ -22,6 +22,7 @@ agents:
   cursor       generate .cursor/rules/<name>.mdc files from each SKILL.md
   codex        append a "## Skills" block to AGENTS.md with skill summaries
   antigravity  generate .antigravity/skills/<name>.md files
+  opencode     generate .opencode/commands/<name>.md files from each SKILL.md
 
 Run this from the target repo, not the skills repo.
 EOF
@@ -143,6 +144,24 @@ case "$AGENT" in
       name="$(basename "$src")"
       cp -R "$src/." "$DEST/$name/"
       echo "copied $name -> $DEST/$name"
+    done
+    ;;
+
+  opencode)
+    DEST="$TARGET/.opencode/commands"
+    mkdir -p "$DEST"
+    skill_dirs | while IFS= read -r src; do
+      name="$(basename "$src")"
+      desc="$(fm "$src/SKILL.md" description)"
+      out="$DEST/${name}.md"
+      {
+        echo "---"
+        echo "description: ${desc}"
+        echo "---"
+        echo
+        skill_body "$src/SKILL.md"
+      } > "$out"
+      echo "wrote $out"
     done
     ;;
 

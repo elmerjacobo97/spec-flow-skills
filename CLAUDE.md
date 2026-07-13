@@ -62,7 +62,7 @@ At completion, remind the user to verify acceptance criteria and mark the spec `
 The repo is consumed by users in two ways:
 
 1. **skills.sh** (`npx skills@latest add Klerith/fernando-skills`) — auto-discovers public GitHub repos with `skills/**/SKILL.md`. Just push to GitHub.
-2. **Multi-agent installer** (`scripts/install-to-agent.sh <agent>`) — translates skills for Cursor (`.cursor/rules/*.mdc`), Codex (`AGENTS.md` block + `.codex/skills/`), and Antigravity (`.antigravity/skills/`). Run from the *target* repo, not this one.
+2. **Multi-agent installer** (`scripts/install-to-agent.sh <agent>`) — translates skills for Cursor (`.cursor/rules/*.mdc`), Codex (`AGENTS.md` block + `.codex/skills/`), Antigravity (`.antigravity/skills/`), and opencode (`.opencode/commands/*.md`). Run from the *target* repo, not this one.
 
 `scripts/link-skills.sh` symlinks every skill into `~/.claude/skills` for local development.
 

@@ -223,7 +223,7 @@ npx skills@latest remove Klerith/fernando-skills
 ```
 
 
-### Opción 2 — Otros agentes (Cursor, Codex, Antigravity)
+### Opción 2 — Otros agentes (Cursor, Codex, Antigravity, opencode)
 
 ```bash
 git clone https://github.com/Klerith/fernando-skills ~/.fernando-skills
@@ -231,7 +231,7 @@ cd ~/tu-proyecto
 ~/.fernando-skills/scripts/install-to-agent.sh <agent>
 ```
 
-`<agent>` puede ser `claude`, `cursor`, `codex` o `antigravity`. Ver [README.md](./README.md#installation) para detalles.
+`<agent>` puede ser `claude`, `cursor`, `codex`, `antigravity` u `opencode`. Ver [README.md](./README.md#installation) para detalles.
 
 ### Opción 3 — Manual
 

@@ -223,7 +223,7 @@ npx skills@latest remove Klerith/fernando-skills
 ```
 
 
-### Option 2 — Other agents (Cursor, Codex, Antigravity)
+### Option 2 — Other agents (Cursor, Codex, Antigravity, opencode)
 
 ```bash
 git clone https://github.com/Klerith/fernando-skills ~/.fernando-skills
@@ -231,7 +231,7 @@ cd ~/your-project
 ~/.fernando-skills/scripts/install-to-agent.sh <agent>
 ```
 
-`<agent>` can be `claude`, `cursor`, `codex`, or `antigravity`.
+`<agent>` can be `claude`, `cursor`, `codex`, `antigravity`, or `opencode`.
 
 | Agent         | What gets written                                                                     |
 | ------------- | ------------------------------------------------------------------------------------- |
@@ -239,8 +239,9 @@ cd ~/your-project
 | `cursor`      | Generates `.cursor/rules/<name>.mdc` files. Invoke with `@spec`, `@spec-impl`, etc.   |
 | `codex`       | Adds a `## Skills` block to `AGENTS.md` and copies skill bodies into `.codex/skills/` |
 | `antigravity` | Copies skill bodies into `.antigravity/skills/`                                       |
+| `opencode`    | Generates `.opencode/commands/<name>.md` files. Invoke with `/spec`, `/spec-impl`, etc. |
 
-> Cursor and Codex don't natively support Claude Code's `argument-hint` or `disable-model-invocation` frontmatter. The installer drops those fields and keeps the body — the workflow is the same, only the trigger changes.
+> Cursor and opencode don't support Claude Code's `argument-hint`, `allowed-tools`, or `disable-model-invocation` frontmatter. The installer drops those fields and keeps the body — the workflow is the same, only the trigger and any tool-permission gating change.
 
 ### Option 3 — Manual
 
