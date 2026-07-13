@@ -94,15 +94,15 @@ case "$AGENT" in
 
   codex)
     OUT="$TARGET/AGENTS.md"
-    BLOCK_START="<!-- fernando-skills:start -->"
-    BLOCK_END="<!-- fernando-skills:end -->"
+    BLOCK_START="<!-- spec-flow-skills:start -->"
+    BLOCK_END="<!-- spec-flow-skills:end -->"
 
     tmp_block="$(mktemp)"
     {
       echo "$BLOCK_START"
-      echo "## Skills (fernando-skills)"
+      echo "## Skills (spec-flow-skills)"
       echo
-      echo "Installed from https://github.com/Klerith/fernando-skills. Each entry is a workflow you can invoke by reading the linked file and following its steps."
+      echo "Installed from https://github.com/elmerjacobo97/spec-flow-skills. Each entry is a workflow you can invoke by reading the linked file and following its steps."
       echo
       skill_dirs | while IFS= read -r src; do
         name="$(basename "$src")"

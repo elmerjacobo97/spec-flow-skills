@@ -6,16 +6,16 @@
 </p>
 
 <p align="center">
-  <img alt="Licencia" src="https://img.shields.io/github/license/Klerith/fernando-skills">
-  <img alt="Último release" src="https://img.shields.io/github/v/release/Klerith/fernando-skills">
-  <img alt="GitHub Stars" src="https://img.shields.io/github/stars/Klerith/fernando-skills?style=social">
+  <img alt="Licencia" src="https://img.shields.io/github/license/elmerjacobo97/spec-flow-skills">
+  <img alt="Último release" src="https://img.shields.io/github/v/release/elmerjacobo97/spec-flow-skills">
+  <img alt="GitHub Stars" src="https://img.shields.io/github/stars/elmerjacobo97/spec-flow-skills?style=social">
   <img alt="Skills" src="https://img.shields.io/badge/skills-2-blue">
 </p>
 
 ## Inicio rápido
 
 ```bash
-npx skills@latest add Klerith/fernando-skills
+npx skills@latest add elmerjacobo97/spec-flow-skills
 ```
 
 ## Skills
@@ -213,22 +213,22 @@ Esa separación es lo que evita el scope creep silencioso.
 ### Opción 1 — skills.sh (recomendado, Claude Code)
 
 ```bash
-npx skills@latest add Klerith/fernando-skills
+npx skills@latest add elmerjacobo97/spec-flow-skills
 ```
 
 Para desinstalar:
 
 ```bash
-npx skills@latest remove Klerith/fernando-skills
+npx skills@latest remove elmerjacobo97/spec-flow-skills
 ```
 
 
 ### Opción 2 — Otros agentes (Cursor, Codex, Antigravity, opencode)
 
 ```bash
-git clone https://github.com/Klerith/fernando-skills ~/.fernando-skills
+git clone https://github.com/elmerjacobo97/spec-flow-skills ~/.spec-flow-skills
 cd ~/tu-proyecto
-~/.fernando-skills/scripts/install-to-agent.sh <agent>
+~/.spec-flow-skills/scripts/install-to-agent.sh <agent>
 ```
 
 `<agent>` puede ser `claude`, `cursor`, `codex`, `antigravity` u `opencode`. Ver [README.md](./README.md#installation) para detalles.
