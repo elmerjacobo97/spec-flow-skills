@@ -27,6 +27,7 @@ Before asking questions about the feature, make sure you have project context:
 1. Read the project-memory file, if one exists. Try in order and stop at the first hit: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `README.md`. This adapts the skill to whichever agent is running it (Claude Code, Codex, Gemini CLI, etc.).
 2. List the contents of `specs/` to see which specs already exist and how they are numbered.
 3. If previous specs exist, read at least the two most recent ones to pick up the project's conventions.
+4. Check whether a `specs/NN-slug.brief.md` exists whose slug matches the feature being described. If it does, read it — it carries the business case (evidence, metric, kill criterion) produced by `/product-spec`, and this technical spec must reuse its exact `NN-slug` (see Phase 4, step 1) rather than being assigned a new number. If no matching brief exists and the feature's value or audience is not already obvious from the conversation, mention that `/product-spec` exists for this — but do not require it or block on it.
 
 If the `$ARGUMENTS` argument comes in empty, ask the user for an initial **single-sentence** description of what they want to build. If the description does not fit in one sentence, that is the first signal that the feature is too big — suggest splitting it before continuing.
 
@@ -94,8 +95,8 @@ Strict order:
 
 When all sections are confirmed:
 
-1. Determine the next sequential number by looking at `specs/`. If the last one is `02-powerups.md`, this one will be `03-`.
-2. Generate a short slug from the objective (e.g. `levels-and-highscores`).
+1. Determine the file's `NN-slug`. If a matching `specs/NN-slug.brief.md` was found in Phase 1, reuse its exact `NN-slug` — the technical spec and the brief share the same number, they are not two entries in the sequence. Otherwise, determine the next sequential number by looking at `specs/`: if the last one is `02-powerups.md`, this one will be `03-`.
+2. Generate a short slug from the objective (e.g. `levels-and-highscores`), unless step 1 already fixed it from an existing brief.
 3. Ask the user whether the proposed file name works for them before writing it.
 4. Create the file at `specs/NN-slug.md` with all approved sections.
 5. Mark the state as `Draft` by default. **Do not mark it as `Approved` automatically** — the user does that once they have re-read it.

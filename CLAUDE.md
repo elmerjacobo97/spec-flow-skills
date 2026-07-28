@@ -10,7 +10,7 @@ This repo is a workspace for authoring Claude Code slash-command skills, specifi
 
 ## Skill authoring conventions
 
-Each skill lives under `skills/<bucket>/<name>/` (e.g. `skills/engineering/spec/`) as a directory containing at minimum a `SKILL.md`. Buckets group skills by domain (`engineering/`, future: `productivity/`, `misc/`, etc.). The YAML frontmatter of `SKILL.md` must declare:
+Each skill lives under `skills/<bucket>/<name>/` (e.g. `skills/engineering/spec/`) as a directory containing at minimum a `SKILL.md`. Buckets group skills by domain (`engineering/` for skills that execute code or git, `product/` for skills that define business intent ahead of a technical spec). The YAML frontmatter of `SKILL.md` must declare:
 
 ```yaml
 ---
@@ -29,7 +29,16 @@ Companion files (e.g., `template.md`) sit next to `SKILL.md` and are referenced 
 
 ## The spec workflow
 
-This repo encodes a two-skill pair:
+This repo encodes a three-skill chain: `/product-spec` (optional) → `/spec` → `/spec-impl`.
+
+### `/product-spec`
+Optional step before `/spec`. Single pass, not phased: asks for evidence, current workaround, a metric with baseline/target/check-in date, a 20% version, and a kill criterion. Saves `specs/NN-slug.brief.md` with status `Draft`.
+
+If no baseline exists for the metric, the skill does not fabricate one — it outputs a brief whose only content is what to instrument (event names/properties) and stops there. This is a correct terminal output, not a failure state.
+
+`/spec` Phase 1 checks for a matching `specs/NN-slug.brief.md` and, if found, reuses its exact `NN-slug` for the technical spec rather than assigning a new number — the brief and the spec are two files sharing one number, not two entries in the sequence.
+
+This skill pair (below) is unchanged by the addition:
 
 ### `/spec`
 Guides the user through 4 phases: read project context → clarify with questions (blocks of 3–5) → draft each spec section one at a time with user confirmation → save to `specs/NN-slug.md`.

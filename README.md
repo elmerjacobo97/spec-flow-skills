@@ -9,7 +9,7 @@
   <img alt="License" src="https://img.shields.io/github/license/elmerjacobo97/spec-flow-skills">
   <img alt="Latest Release" src="https://img.shields.io/github/v/release/elmerjacobo97/spec-flow-skills">
   <img alt="GitHub Stars" src="https://img.shields.io/github/stars/elmerjacobo97/spec-flow-skills?style=social">
-  <img alt="Skills" src="https://img.shields.io/badge/skills-2-blue">
+  <img alt="Skills" src="https://img.shields.io/badge/skills-3-blue">
 </p>
 
 ## Quick start
@@ -22,6 +22,7 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 
 | Skill | Description | Argument |
 | --- | --- | --- |
+| `/product-spec` | Defines the business case before the technical spec: evidence, metric, 20% version, kill criterion | `[short topic]` |
 | `/spec` | Designs the feature document by asking clarifying questions | — |
 | `/spec-impl` | Validates the spec is approved and implements step by step | `<NN-slug>` |
 
@@ -33,6 +34,7 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 - [The problem it solves](#the-problem-it-solves)
 - [The six-step procedure](#the-six-step-procedure)
 - [Anatomy of a useful spec](#anatomy-of-a-useful-spec)
+- [The optional step before /spec: /product-spec](#the-optional-step-before-spec-product-spec)
 - [When to use specs and when not](#when-to-use-specs-and-when-not)
 - [Rules almost nobody follows](#rules-almost-nobody-follows)
 - [Installation](#installation)
@@ -147,6 +149,26 @@ Each decision ideally has a short reason. Decisions without a reason are the fir
 
 ---
 
+## The optional step before /spec: /product-spec
+
+`/spec` designs *what* gets built once someone has decided it's worth building. It doesn't ask *whether* it's worth building or *how you'll know* it worked — that question belongs to `/product-spec`, a separate skill that runs one step earlier.
+
+```bash
+/product-spec push-notifications   # optional — evidence, metric, 20% version, kill criterion
+        ↓
+/spec push-notifications           # reads the brief automatically if one exists
+        ↓
+/spec-impl NN-push-notifications
+```
+
+`/product-spec` asks five things in a single pass — who asked for this, what they do today without it, what metric it should move (with a real baseline, not an adjective), the smallest version that tests the hypothesis, and the number that would make you kill it — then saves `specs/NN-slug.brief.md`. If there's no baseline to measure against, it doesn't invent one: it outputs a brief that says what to instrument first, and stops there.
+
+**Use it when** the feature's value or audience is not already obvious. **Skip it** for bug fixes, security patches, technical debt, or anything a client already requested with hard evidence — go straight to `/spec` in those cases.
+
+See [`skills/product/product-spec/SKILL.md`](./skills/product/product-spec/SKILL.md) for the full flow.
+
+---
+
 ## When to use specs and when not
 
 This architecture has a cost. Don't apply it to everything.
@@ -248,11 +270,13 @@ cd ~/your-project
 ```bash
 # Personal (all your projects)
 mkdir -p ~/.claude/skills
+cp -r skills/product/product-spec ~/.claude/skills/
 cp -r skills/engineering/spec ~/.claude/skills/
 cp -r skills/engineering/spec-impl ~/.claude/skills/
 
 # Or per-project (versioned in git)
 mkdir -p .claude/skills
+cp -r skills/product/product-spec .claude/skills/
 cp -r skills/engineering/spec .claude/skills/
 cp -r skills/engineering/spec-impl .claude/skills/
 ```
@@ -272,10 +296,17 @@ Optionally, add a `specs/README.md` documenting the convention (see the example 
 ### Full feature cycle
 
 ```bash
+# 0. (Optional) Define the business case first — evidence, metric, kill criterion
+/product-spec levels-and-highscores
+
+# Only worth doing if the feature's value or audience isn't already obvious.
+# Saves specs/03-levels-and-highscores.brief.md with status: Draft.
+
 # 1. Design the spec with clarifying questions
 /spec levels-and-highscores
 
-# Claude reads the project-memory file (CLAUDE.md, AGENTS.md, GEMINI.md, or README.md) and existing specs/, asks questions
+# Claude reads the project-memory file (CLAUDE.md, AGENTS.md, GEMINI.md, or README.md) and existing specs/
+# (including the .brief.md from step 0, if it exists), asks questions
 # in blocks, develops the spec section by section,
 # and finally saves it as specs/03-levels-and-highscores.md
 # with status: Draft.
@@ -293,6 +324,16 @@ Optionally, add a `specs/README.md` documenting the convention (see the example 
 ```
 
 ### What each skill does
+
+#### `/product-spec [short-topic]`
+
+Defines the business case, in a single pass:
+
+1. **Evidence** — who asked, how many, how strong is the signal.
+2. **Metric** — baseline, target, and check-in date. No adjectives accepted.
+3. **20% version** — the smallest cut that still tests the hypothesis.
+4. **Kill criterion** — what result reverts this instead of iterating on it.
+5. **Save** — `specs/NN-slug.brief.md` with status `Draft`. If there's no baseline to measure, the brief recommends instrumentation instead of scoping a feature.
 
 #### `/spec [short-topic]`
 
