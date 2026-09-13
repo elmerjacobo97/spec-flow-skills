@@ -317,9 +317,10 @@ Optionally, add a `specs/README.md` documenting the convention (see the example 
 # 3. Implement the approved spec
 /spec-impl 03-levels-and-highscores
 
-# Claude validates the status is Approved, creates the branch
-# spec-03-levels-and-highscores, switches to it, shows
-# the spec summary, and starts the step-by-step implementation
+# Claude validates the status is Approved and resolves the branch:
+# it reuses the active ticket work branch when there is one,
+# otherwise creates spec-03-levels-and-highscores. Then it shows
+# the spec summary and starts the step-by-step implementation
 # with pauses to review diffs.
 ```
 
@@ -350,10 +351,10 @@ Implements an approved spec. Goes through four phases:
 
 1. **Identify** — locates the spec file.
 2. **Validate** — verifies the status is `Approved`. If not, it stops.
-3. **Create branch** — `git checkout -b spec-NN-slug` and switches to it.
+3. **Resolve branch** — reuses the active ticket work branch (`feat/...`, `fix/...`) when one is present; otherwise creates and switches to `spec-NN-slug`.
 4. **Implement** — step by step with pauses, showing the spec summary first.
 
-> **Branch control:** Phase 3 reads the `AutoCreateBranch` flag from `specs/.spec-config.yml`. It defaults to `true` (creates the branch automatically). Set it to `false` to make `/spec-impl` ask `[y/N]` before creating any branch — useful if branch naming is part of your own Git workflow.
+> **Branch control:** Phase 3 first checks the current branch. If it is neither the default branch nor `spec-NN-slug` — the case when a ticket tool (e.g. Forge) already created the work branch — Phase 3 keeps that branch and skips `AutoCreateBranch` entirely: one work branch per task, created once. Otherwise it reads the `AutoCreateBranch` flag from `specs/.spec-config.yml`. It defaults to `true` (creates the branch automatically). Set it to `false` to make `/spec-impl` ask `[y/N]` before creating any branch — useful if branch naming is part of your own Git workflow.
 >
 > ```yaml
 > # specs/.spec-config.yml
@@ -391,7 +392,7 @@ Implements an approved spec. Goes through four phases:
 │                                                           │
 │   /spec-impl  Claude validates and implements             │
 │             ↓                                             │
-│             branch spec-NN-slug + code                    │
+│             branch spec-NN-slug (or ticket branch) + code │
 │                                                           │
 └───────────────────────────────────────────────────────────┘
 ```

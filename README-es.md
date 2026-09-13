@@ -307,10 +307,10 @@ Opcionalmente, añade un `specs/README.md` que documente la convención (ver el 
 # 3. Implementar el spec aprobado
 /spec-impl 03-niveles-y-highscores
 
-# Claude valida que el estado sea Aprobado, crea la rama
-# spec-03-niveles-y-highscores, se mueve a ella, muestra
-# el resumen del spec, y arranca la implementación
-# paso a paso con pausas para revisar diffs.
+# Claude valida que el estado sea Aprobado y resuelve la rama:
+# reutiliza la rama de ticket activa si existe; si no, crea
+# spec-03-niveles-y-highscores. Luego muestra el resumen del spec
+# y arranca la implementación paso a paso con pausas para revisar diffs.
 ```
 
 ### Qué hace cada skill
@@ -340,10 +340,10 @@ Implementa un spec aprobado. Pasa por cuatro fases:
 
 1. **Identificar** — busca el archivo del spec.
 2. **Validar** — verifica que el estado sea `Aprobado`. Si no, se detiene.
-3. **Crear rama** — `git checkout -b spec-NN-slug` y se mueve a ella.
+3. **Resolver rama** — reutiliza la rama de ticket activa (`feat/...`, `fix/...`) si existe; si no, crea y se mueve a `spec-NN-slug`.
 4. **Implementar** — paso a paso con pausas, mostrando el resumen del spec primero.
 
-> **Control de la rama:** La Fase 3 lee el flag `AutoCreateBranch` de `specs/.spec-config.yml`. Por defecto es `true` (crea la rama automáticamente). Ponlo en `false` para que `/spec-impl` pregunte `[s/N]` antes de crear cualquier rama — útil si el nombrado de ramas es parte de tu propio Git workflow.
+> **Control de la rama:** La Fase 3 primero revisa la rama actual. Si no es la default ni `spec-NN-slug` — el caso cuando una herramienta de tickets (p.ej. Forge) ya creó la rama de trabajo — la conserva y omite `AutoCreateBranch` por completo: una rama de trabajo por tarea, creada una sola vez. En caso contrario lee el flag `AutoCreateBranch` de `specs/.spec-config.yml`. Por defecto es `true` (crea la rama automáticamente). Ponlo en `false` para que `/spec-impl` pregunte `[s/N]` antes de crear cualquier rama — útil si el nombrado de ramas es parte de tu propio Git workflow.
 >
 > ```yaml
 > # specs/.spec-config.yml
@@ -379,7 +379,7 @@ Implementa un spec aprobado. Pasa por cuatro fases:
 │                                                           │
 │   /spec-impl  Claude valida e implementa                  │
 │             ↓                                             │
-│             rama spec-NN-slug + código                    │
+│             rama spec-NN-slug (o rama de ticket) + código │
 │                                                           │
 └───────────────────────────────────────────────────────────┘
 ```
