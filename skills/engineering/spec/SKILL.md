@@ -2,7 +2,7 @@
 name: spec
 description: Designs and develops specs following the spec-driven method. Asks clarifying questions before proposing structure, and builds the spec section by section. Use it when starting a large feature, before writing code.
 disable-model-invocation: true
-argument-hint: 'short feature description or requirement'
+argument-hint: "short feature description or requirement"
 ---
 
 # /spec — Guided spec designer
@@ -116,6 +116,7 @@ When all sections are confirmed:
    - Reminder: the spec is in `Draft` state. Change it to `Approved` once you have re-read it.
    - If you just created `specs/.spec-config.yml`, mention it exists and that `AutoCreateBranch` defaults to `true` (set it to `false` to control branch creation yourself).
    - Next step: once reviewed and approved, run `/spec-impl NN-slug` to implement it.
+   - Optional before implementing: split the spec into tracker tickets (e.g. Forge, skill `forge-tickets`), one per implementation-plan section, with `Spec: specs/NN-slug.md` in each description. Then either work each ticket — `/spec-impl` reuses the ticket's work branch — or run `/spec-impl NN-slug` directly.
    - **Stop here.** Do not propose implementing the spec, writing code, or taking any further action beyond this confirmation.
 
 ## Hard rules

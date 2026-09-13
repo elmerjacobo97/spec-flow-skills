@@ -32,6 +32,7 @@ Companion files (e.g., `template.md`) sit next to `SKILL.md` and are referenced 
 This repo encodes a three-skill chain: `/product-spec` (optional) → `/spec` → `/spec-impl`.
 
 ### `/product-spec`
+
 Optional step before `/spec`. Single pass, not phased: asks for evidence, current workaround, a metric with baseline/target/check-in date, a 20% version, and a kill criterion. Saves `specs/NN-slug.brief.md` with status `Draft`.
 
 If no baseline exists for the metric, the skill does not fabricate one — it outputs a brief whose only content is what to instrument (event names/properties) and stops there. This is a correct terminal output, not a failure state.
@@ -41,11 +42,13 @@ If no baseline exists for the metric, the skill does not fabricate one — it ou
 This skill pair (below) is unchanged by the addition:
 
 ### `/spec`
+
 Guides the user through 4 phases: read project context → clarify with questions (blocks of 3–5) → draft each spec section one at a time with user confirmation → save to `specs/NN-slug.md`.
 
 On save, it also seeds `specs/.spec-config.yml` (default `AutoCreateBranch: true`) **only if the file is missing** — an existing config is never overwritten. This is how the `AutoCreateBranch` flag that `/spec-impl` reads gets created without the user knowing the file exists.
 
 Output file format: `specs/NN-slug.md` with a header block:
+
 ```
 > **Estado:** Borrador · **Depende de:** ... · **Fecha:** YYYY-MM-DD
 > **Objetivo:** One sentence.
@@ -56,22 +59,28 @@ Output file format: `specs/NN-slug.md` with a header block:
 Valid states: `Borrador` → `En revisión` → `Aprobado` → `Implementado` · `Obsoleto`
 
 ### `/spec-impl`
+
 Accepts `<NN-slug>` as argument. Phases:
+
 1. Locate `specs/<NN-slug>.md`.
 2. Read `**Estado:**` — abort with a standard error message if it is not exactly `Aprobado`.
-3. Create and switch to branch `spec-NN-slug`.
+3. Resolve the branch: if the current branch is neither the default branch nor `spec-NN-slug`, treat it as an existing work branch (the ticket flow created it) and stay on it. Otherwise apply the `AutoCreateBranch` logic.
 4. Implement the spec's plan step-by-step, pausing after each step for diff review.
 
-Branch creation in step 3 is gated by the `AutoCreateBranch` flag, read at skill-load time from `specs/.spec-config.yml` via a `!`cat`` snippet. Default (file or value absent) is `true` → branch is created automatically. An explicit `false` makes the skill ask `[y/N]` before creating the branch; on decline it implements on the current branch. There is still no runtime config infra — the flag is just a value injected into the prompt and interpreted by the model.
+Branch creation in step 3 is gated by the `AutoCreateBranch` flag, read at skill-load time from `specs/.spec-config.yml` via a `!`cat`` snippet. Default (file or value absent) is `true` → branch is created automatically when starting from the default branch. An explicit `false` makes the skill ask `[y/N]` before creating the branch; on decline it implements on the current branch. The existing-work-branch rule takes precedence over the flag: in the ticket flow no branch is created and no question is asked. There is still no runtime config infra — the flag is just a value injected into the prompt and interpreted by the model.
 
 At completion, remind the user to verify acceptance criteria and mark the spec `Implementado` manually before merging.
+
+### Tickets bridge (optional)
+
+A spec can be split into tracker tickets — one per implementation-plan section — before implementation. The ticket description carries `Spec: specs/NN-slug.md`, and the board tracks state and time while the spec remains the source of truth for scope. Working a ticket runs on a ticket work branch (`feat/<slug>`, `fix/<slug>`, …); when `/spec-impl` finds that branch active, Phase 3 reuses it instead of creating `spec-NN-slug`. The order is: approve the spec → create the tickets → work each ticket with the ticket skill → merge per ticket. This keeps the board honest without duplicating the plan; for projects using OpenSpec the same bridge works with `Change: openspec/changes/<name>` and one ticket per `tasks.md` section.
 
 ## Distribution
 
 The repo is consumed by users in two ways:
 
 1. **skills.sh** (`npx skills@latest add elmerjacobo97/spec-flow-skills`) — auto-discovers public GitHub repos with `skills/**/SKILL.md`. Just push to GitHub.
-2. **Multi-agent installer** (`scripts/install-to-agent.sh <agent>`) — translates skills for Cursor (`.cursor/rules/*.mdc`), Codex (`AGENTS.md` block + `.codex/skills/`), Antigravity (`.antigravity/skills/`), and opencode (`.opencode/commands/*.md`). Run from the *target* repo, not this one.
+2. **Multi-agent installer** (`scripts/install-to-agent.sh <agent>`) — translates skills for Cursor (`.cursor/rules/*.mdc`), Codex (`AGENTS.md` block + `.codex/skills/`), Antigravity (`.antigravity/skills/`), and opencode (`.opencode/commands/*.md`). Run from the _target_ repo, not this one.
 
 `scripts/link-skills.sh` symlinks every skill into `~/.claude/skills` for local development.
 
