@@ -72,7 +72,7 @@ Strict order:
 1. **Header** (state, dependencies, date, one-sentence objective). The one-sentence objective is critical — if it does not fit in one sentence, go back to Phase 2.
 2. **Scope** (what is in and what is NOT). The "not in" must be explicit.
 3. **Data model** (concrete structures with real names). If the feature introduces no new data, skip this section and say so explicitly.
-4. **Implementation plan** (numbered steps, each leaving the system functional).
+4. **Implementation plan** (groups of checkbox steps: `### Group N — <name>` + `- [ ] N.M ...`; each step leaves the system functional and each group is a reviewable, commitable chunk — `/spec-impl` ticks them off as it implements).
 5. **Acceptance criteria** (boolean checklist, not aspirational).
 6. **Decisions taken and discarded** (with brief justification).
 7. **Identified risks** (only if applicable — if no relevant risks exist, skip it).
@@ -116,7 +116,7 @@ When all sections are confirmed:
    - Reminder: the spec is in `Draft` state. Change it to `Approved` once you have re-read it.
    - If you just created `specs/.spec-config.yml`, mention it exists and that `AutoCreateBranch` defaults to `true` (set it to `false` to control branch creation yourself).
    - Next step: once reviewed and approved, run `/spec-impl NN-slug` to implement it.
-   - Optional before implementing: split the spec into tracker tickets (e.g. Forge, skill `forge-tickets`), one per implementation-plan section, with `Spec: specs/NN-slug.md` in each description. Then either work each ticket — `/spec-impl` reuses the ticket's work branch — or run `/spec-impl NN-slug` directly.
+   - Optional before implementing: split the spec into tracker tickets (e.g. Forge, skill `forge-tickets`), one per implementation-plan group, with `Spec: specs/NN-slug.md` in each description. Then either work each ticket — `/spec-impl` reuses the ticket's work branch — or run `/spec-impl NN-slug` directly.
    - **Stop here.** Do not propose implementing the spec, writing code, or taking any further action beyond this confirmation.
 
 ## Hard rules

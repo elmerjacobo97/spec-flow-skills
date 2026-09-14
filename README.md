@@ -2,7 +2,7 @@
 
 <p align="center">
   <h1 align="center">Spec-Driven Skills for Claude Code</h1>
-  <p align="center">Plan the feature. Approve it. Implement it step by step.</p>
+  <p align="center">Plan the feature. Approve it. Implement it group by group.</p>
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 | --- | --- | --- |
 | `/product-spec` | Defines the business case before the technical spec: evidence, metric, 20% version, kill criterion | `[short topic]` |
 | `/spec` | Designs the feature document by asking clarifying questions | — |
-| `/spec-impl` | Validates the spec is approved and implements step by step | `<NN-slug>` |
+| `/spec-impl` | Validates the spec is approved and implements it group by group, pausing for review and commit after each group | `<NN-slug> [--one-shot]` |
 
 ---
 
@@ -81,8 +81,8 @@ The spec solves all three: it makes decisions explicit, it persists across sessi
                               ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
 │    4. SAVE      │→ │   5. EXECUTE    │→ │   6. REVIEW     │
-│ specs/NN-       │  │ Step by step    │  │ Diff per step   │
-│ feature.md      │  │ with pauses     │  │ not at the end  │
+│ specs/NN-       │  │ Group by group, │  │ Diff + commit   │
+│ feature.md      │  │ boxes ticked    │  │ per group       │
 └─────────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
@@ -104,11 +104,11 @@ When the spec is honed, you save it in `specs/NN-slug.md` with status `Draft`. Y
 
 ### 5. Execute
 
-You exit plan mode and ask Claude to implement the spec **step by step**, stopping after each step in the implementation plan. The pause between steps is what makes the method work.
+You exit plan mode and run `/spec-impl`. Claude implements one group of the plan, ticking each step off inside the spec file, and stops with a mini-summary. You review the diff and commit. Say "continue" and it moves to the next group. It only stops mid-group on a real ambiguity or a step that breaks something. For small specs, add `--one-shot` and it runs every group without pausing.
 
 ### 6. Review
 
-After each step, you review the diff. If it's good, you continue. If not, you correct in the moment — not at the end with 600 lines mixed together.
+Review and commit per group: each chunk is small enough to actually read, and the history stays clean. When the last group is done, Claude verifies the acceptance criteria with real evidence and closes with a summary: what was done, why, what was verified, what is still pending. Interruptions are cheap — the unchecked boxes in the spec tell the next run exactly where to resume.
 
 ---
 
@@ -130,7 +130,7 @@ Concrete structures and names. If you say "the levels module", say `src/levels.j
 
 ### 4. Ordered implementation plan
 
-Numbered sequential steps. **Each step must leave the system in a working state.** If a step requires more than 30-50 lines of code, split it. The last step is not "test everything" — that's the acceptance criteria.
+Grouped checkbox steps (`### Group N` + `- [ ] N.M`). **Each step must leave the system in a working state.** If a step requires more than 30-50 lines of code, split it. The last step is not "test everything" — that's the acceptance criteria. `/spec-impl` ticks each step off as it implements it, and stops at the end of each group so you can review and commit before the next one.
 
 ### 5. Acceptance criteria
 
@@ -215,12 +215,11 @@ That second version leaves room for Claude to **decide** and you to **review**. 
 
 Plan mode is where **you direct**. "Take X out", "the format is JSON", "add risks". If you say "I think maybe it would be good to...", Claude is going to leave it as is.
 
-### 3. During execution, ask for pauses between steps
+### 3. During execution, review by group — not by step, not by whole spec
 
-The difference is:
-
-- **Without pauses:** Claude dumps 400 lines. You review a giant commit. If something is wrong in step 2, it's mixed with changes from steps 5 and 6. Painful.
-- **With pauses:** Claude dumps 50-80 lines (step 1). You read the diff. You approve or adjust. It moves to step 2. Each step is a clean commit. Reverting is trivial.
+- **Too slow:** pausing after every step turns you into a babysitter for a run that could have been one sitting.
+- **Too fast:** a single pass over a big spec ends in one giant diff, and a mistake in group 2 is buried under groups 3 and 4.
+- **The balance:** the groups in the spec are the unit of review. Claude implements a group, ticks its steps off inside the spec file, and stops. You read the diff, commit, and say "continue". Each chunk is small enough to actually review, and the history stays clean. An interrupted run resumes from the first unchecked box — even in a new session.
 
 ### 4. If mid-execution you want to change something, you go back to step 2 — never improvise
 
@@ -319,9 +318,10 @@ Optionally, add a `specs/README.md` documenting the convention (see the example 
 
 # Claude validates the status is Approved and resolves the branch:
 # it reuses the active ticket work branch when there is one,
-# otherwise creates spec-03-levels-and-highscores. Then it shows
-# the spec summary and starts the step-by-step implementation
-# with pauses to review diffs.
+# otherwise creates spec-03-levels-and-highscores. It implements
+# one group, ticks it off in the spec, and stops for your review
+# and commit. Say "continue" for the next group. Add --one-shot
+# to skip the pauses on small specs.
 ```
 
 ### What each skill does
@@ -352,7 +352,11 @@ Implements an approved spec. Goes through four phases:
 1. **Identify** — locates the spec file.
 2. **Validate** — verifies the status is `Approved`. If not, it stops.
 3. **Resolve branch** — reuses the active ticket work branch (`feat/...`, `fix/...`) when one is present; otherwise creates and switches to `spec-NN-slug`.
-4. **Implement** — step by step with pauses, showing the spec summary first.
+4. **Implement** — group by group. Ticks each step `- [x]` inside the spec as it completes a group, then stops with a mini-summary so you can review and commit. Say "continue" for the next group. Verifies the acceptance criteria with real evidence at the end and closes with a summary. It only stops mid-group on an ambiguity or a step that breaks the project.
+
+> **Groups live in the spec:** the implementation plan is a grouped checkbox list (`### Group N — …` + `- [ ] N.M`). If an older spec is flat, `/spec-impl` proposes a grouping, writes it into the spec after your confirmation, and then implements group by group. An interrupted run resumes from the first unchecked box, and at the end only the criteria it can prove with evidence are marked — the rest wait for you.
+
+> **`--one-shot`:** `/spec-impl 03-levels-and-highscores --one-shot` runs every group without the between-group pauses. Useful when the spec is small enough that a single review at the end suffices.
 
 > **Branch control:** Phase 3 first checks the current branch. If it is neither the default branch nor `spec-NN-slug` — the case when a ticket tool (e.g. Forge) already created the work branch — Phase 3 keeps that branch and skips `AutoCreateBranch` entirely: one work branch per task, created once. Otherwise it reads the `AutoCreateBranch` flag from `specs/.spec-config.yml`. It defaults to `true` (creates the branch automatically). Set it to `false` to make `/spec-impl` ask `[y/N]` before creating any branch — useful if branch naming is part of your own Git workflow.
 >

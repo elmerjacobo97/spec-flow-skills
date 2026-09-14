@@ -83,19 +83,27 @@ If the feature introduces no new data, write it explicitly: _"This feature intro
 
 ## Section 4 — Implementation plan
 
-Numbered steps. Each step must leave the system in a **functional and runnable** state. No "implement half and continue tomorrow".
+Grouped checkbox steps. Groups are the unit of review: `/spec-impl` implements one group, stops, and waits for you to review and commit before the next. Each step must leave the system in a **functional and runnable** state. No "implement half and continue tomorrow".
 
 ```markdown
 ## Implementation plan
 
-1. Create file X with an empty skeleton.
-2. Implement function A in X. Manual test: run Y, see Z.
-3. Wire X to existing module W.
-4. ...
+### Group 1 — <coherent phase: schema, backend, UI, wiring…>
+
+- [ ] 1.1 Create file X with an empty skeleton.
+- [ ] 1.2 Implement function A in X. Manual test: run Y, see Z.
+
+### Group 2 — <next phase>
+
+- [ ] 2.1 Wire X to existing module W.
+- [ ] 2.2 ...
 ```
 
 **Rules:**
 
+- Group the steps under `###` headings. A group is a coherent, independently reviewable chunk — 2–5 steps, ending in a state you can commit.
+- Steps use `- [ ]` checkboxes; `/spec-impl` ticks each one off (`- [x]`) as it completes it, so the plan doubles as the implementation progress log.
+- Never pre-tick a step. A checked step means "implemented", not "planned".
 - Each step must be commitable on its own.
 - If a step requires more than 30–50 lines of code, split it.
 - The last step of the plan is **not** "test everything" — that is the acceptance criteria.
@@ -113,6 +121,8 @@ Boolean checklist. Each item can be verified with yes or no.
 - [ ] Breaking a brick adds exactly 10 points.
 - [ ] Reloading the page preserves the high-scores.
 ```
+
+At the end of a run, `/spec-impl` verifies these one by one and marks `- [x]` only the ones it can prove with real evidence (test suite, build, linter, or the check described). Everything else stays unchecked for the human to verify.
 
 **Anti-patterns to avoid:**
 

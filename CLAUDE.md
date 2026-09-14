@@ -65,15 +65,15 @@ Accepts `<NN-slug>` as argument. Phases:
 1. Locate `specs/<NN-slug>.md`.
 2. Read `**Estado:**` — abort with a standard error message if it is not exactly `Aprobado`.
 3. Resolve the branch: if the current branch is neither the default branch nor `spec-NN-slug`, treat it as an existing work branch (the ticket flow created it) and stay on it. Otherwise apply the `AutoCreateBranch` logic.
-4. Implement the spec's plan step-by-step, pausing after each step for diff review.
+4. Implement the spec's plan group by group: tick each step off (`- [ ]` → `- [x]`) inside the spec file as it completes a group, then stop with a mini-summary so the human can review and commit before saying "continue". At the end it verifies the acceptance criteria with real evidence and ticks only the ones it proved. `--one-shot` runs every group without the between-group pauses. It stops early only on a real ambiguity or a step that breaks the project.
 
 Branch creation in step 3 is gated by the `AutoCreateBranch` flag, read at skill-load time from `specs/.spec-config.yml` via a `!`cat`` snippet. Default (file or value absent) is `true` → branch is created automatically when starting from the default branch. An explicit `false` makes the skill ask `[y/N]` before creating the branch; on decline it implements on the current branch. The existing-work-branch rule takes precedence over the flag: in the ticket flow no branch is created and no question is asked. There is still no runtime config infra — the flag is just a value injected into the prompt and interpreted by the model.
 
-At completion, remind the user to verify acceptance criteria and mark the spec `Implementado` manually before merging.
+At completion it prints a chat summary (steps, files, why, verified/pending criteria) and reminds the user to review the diff, commit, and mark the spec `Implementado` manually before merging.
 
 ### Tickets bridge (optional)
 
-A spec can be split into tracker tickets — one per implementation-plan section — before implementation. The ticket description carries `Spec: specs/NN-slug.md`, and the board tracks state and time while the spec remains the source of truth for scope. Working a ticket runs on a ticket work branch (`feat/<slug>`, `fix/<slug>`, …); when `/spec-impl` finds that branch active, Phase 3 reuses it instead of creating `spec-NN-slug`. The order is: approve the spec → create the tickets → work each ticket with the ticket skill → merge per ticket. This keeps the board honest without duplicating the plan; for projects using OpenSpec the same bridge works with `Change: openspec/changes/<name>` and one ticket per `tasks.md` section.
+A spec can be split into tracker tickets — one per implementation-plan group — before implementation. The ticket description carries `Spec: specs/NN-slug.md`, and the board tracks state and time while the spec remains the source of truth for scope. Working a ticket runs on a ticket work branch (`feat/<slug>`, `fix/<slug>`, …); when `/spec-impl` finds that branch active, Phase 3 reuses it instead of creating `spec-NN-slug`. The order is: approve the spec → create the tickets → work each ticket with the ticket skill → merge per ticket. This keeps the board honest without duplicating the plan; for projects using OpenSpec the same bridge works with `Change: openspec/changes/<name>` and one ticket per `tasks.md` section.
 
 ## Distribution
 

@@ -2,7 +2,7 @@
 
 <p align="center">
   <h1 align="center">Spec-Driven Skills para Claude Code</h1>
-  <p align="center">Planifica la feature. Apruébala. Impleméntala paso a paso.</p>
+  <p align="center">Planifica la feature. Apruébala. Impleméntala por grupos.</p>
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 | --- | --- | --- |
 | `/product-spec` | Define el caso de negocio antes del spec técnico: evidencia, métrica, versión 20%, criterio de kill | `[tema corto]` |
 | `/spec` | Diseña el documento de la feature haciendo preguntas de clarificación | — |
-| `/spec-impl` | Valida que el spec esté aprobado e implementa paso a paso | `<NN-slug>` |
+| `/spec-impl` | Valida que el spec esté aprobado y lo implementa por grupos, pausando para revisar y commitear tras cada grupo | `<NN-slug> [--one-shot]` |
 
 ---
 
@@ -81,8 +81,8 @@ El spec resuelve los tres: hace explícitas las decisiones, persiste entre sesio
                               ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
 │   4. GUARDAR    │→ │   5. EJECUTAR   │→ │   6. REVISAR    │
-│ specs/NN-       │  │ Paso a paso     │  │ Diff por paso   │
-│ feature.md      │  │ con pausas      │  │ no al final     │
+│ specs/NN-       │  │ Por grupos,     │  │ Diff + commit   │
+│ feature.md      │  │ boxes marcados  │  │ por grupo       │
 └─────────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
@@ -104,11 +104,11 @@ Cuando el spec está afinado, lo guardas en `specs/NN-slug.md` con estado `Borra
 
 ### 5. Ejecutar
 
-Sales de plan mode y le pides a Claude que implemente el spec **paso a paso**, parando después de cada paso del plan de implementación. La pausa entre pasos es lo que hace que el método funcione.
+Sales de plan mode y corres `/spec-impl`. Claude implementa un grupo del plan, marca cada paso dentro del archivo del spec y se detiene con un mini-resumen. Revisas el diff y commiteas. Dices "continúa" y pasa al siguiente grupo. Solo se detiene a mitad de grupo ante una ambigüedad real o un paso que rompe algo. Para specs chicos, agrega `--one-shot` y corre todos los grupos sin pausas.
 
 ### 6. Revisar
 
-Después de cada paso, revisas el diff. Si está bien, sigues. Si no, corriges en el momento — no al final con 600 líneas mezcladas.
+Revisas y commiteas por grupo: cada trozo es suficientemente chico para leerlo de verdad, y el historial queda limpio. Cuando termina el último grupo, Claude verifica los criterios de aceptación con evidencia real y cierra con un resumen: qué se hizo, por qué, qué quedó verificado y qué falta. Interrumpir es barato — los checkboxes sin marcar le dicen a la siguiente corrida exactamente dónde reanudar.
 
 ---
 
@@ -130,7 +130,7 @@ Las estructuras y nombres concretos. Si dices "el módulo de niveles", di `src/l
 
 ### 4. Plan de implementación ordenado
 
-Pasos secuenciales numerados. **Cada paso debe dejar el sistema en estado funcional.** Si un paso requiere más de 30-50 líneas de código, divídelo. El último paso no es "probar todo" — eso son los criterios de aceptación.
+Pasos en checkboxes agrupados (`### Grupo N` + `- [ ] N.M`). **Cada paso debe dejar el sistema en estado funcional.** Si un paso requiere más de 30-50 líneas de código, divídelo. El último paso no es "probar todo" — eso son los criterios de aceptación. `/spec-impl` marca cada paso al implementarlo y se detiene al final de cada grupo para que revises y commitees antes del siguiente.
 
 ### 5. Criterios de aceptación
 
@@ -215,12 +215,11 @@ Esa segunda versión deja espacio para que Claude **decida** y tú **revises**. 
 
 Plan mode es donde **tú diriges**. "Saca X", "el formato es JSON", "añade riesgos". Si dices "creo que tal vez sería bueno...", Claude va a dejarlo como está.
 
-### 3. En la ejecución, pide pausas entre pasos
+### 3. En la ejecución, revisa por grupos — ni por paso ni todo de golpe
 
-La diferencia es:
-
-- **Sin pausas:** Claude tira 400 líneas. Tú revisas un commit gigantesco. Si algo está mal en el paso 2, está mezclado con cambios del paso 5 y 6. Doloroso.
-- **Con pausas:** Claude tira 50-80 líneas (paso 1). Lees el diff. Apruebas o ajustas. Sigue al paso 2. Cada paso es un commit limpio. Revertir es trivial.
+- **Muy lento:** pausar tras cada paso te vuelve niñera de una corrida que pudo ser una sola sentada.
+- **Muy rápido:** una sola pasada sobre un spec grande termina en un diff gigante, y un error del grupo 2 queda enterrado bajo los grupos 3 y 4.
+- **El balance:** los grupos del spec son la unidad de revisión. Claude implementa un grupo, marca sus pasos dentro del archivo del spec y se detiene. Lees el diff, commiteas, dices "continúa". Cada trozo es suficientemente chico para revisarlo de verdad y el historial queda limpio. Una corrida interrumpida reanuda desde el primer box sin marcar — incluso en una sesión nueva.
 
 ### 4. Si a mitad de la ejecución quieres cambiar algo, vuelves al paso 2 — nunca improvisas
 
@@ -309,8 +308,10 @@ Opcionalmente, añade un `specs/README.md` que documente la convención (ver el 
 
 # Claude valida que el estado sea Aprobado y resuelve la rama:
 # reutiliza la rama de ticket activa si existe; si no, crea
-# spec-03-niveles-y-highscores. Luego muestra el resumen del spec
-# y arranca la implementación paso a paso con pausas para revisar diffs.
+# spec-03-niveles-y-highscores. Implementa un grupo, lo marca en
+# el spec y se detiene para que revises y commitees. Dices
+# "continúa" para el siguiente grupo. Agrega --one-shot para
+# saltarte las pausas en specs chicos.
 ```
 
 ### Qué hace cada skill
@@ -341,7 +342,11 @@ Implementa un spec aprobado. Pasa por cuatro fases:
 1. **Identificar** — busca el archivo del spec.
 2. **Validar** — verifica que el estado sea `Aprobado`. Si no, se detiene.
 3. **Resolver rama** — reutiliza la rama de ticket activa (`feat/...`, `fix/...`) si existe; si no, crea y se mueve a `spec-NN-slug`.
-4. **Implementar** — paso a paso con pausas, mostrando el resumen del spec primero.
+4. **Implementar** — por grupos. Marca cada paso `- [x]` dentro del spec al completar un grupo y se detiene con un mini-resumen para que revises y commitees. Dices "continúa" para el siguiente grupo. Verifica los criterios de aceptación con evidencia real al final y cierra con un resumen. Solo se detiene a mitad de grupo ante una ambigüedad o un paso que rompe el proyecto.
+
+> **Los grupos viven en el spec:** el plan de implementación es una lista de checkboxes agrupada (`### Grupo N — …` + `- [ ] N.M`). Si un spec viejo está plano, `/spec-impl` propone una agrupación, la escribe en el spec tras tu confirmación y luego implementa grupo por grupo. Una corrida interrumpida reanuda desde el primer box sin marcar, y al final solo se marcan los criterios que se pudieron probar con evidencia — el resto te espera.
+
+> **`--one-shot`:** `/spec-impl 03-niveles-y-highscores --one-shot` corre todos los grupos sin las pausas intermedias. Útil cuando el spec es chico y basta con una revisión al final.
 
 > **Control de la rama:** La Fase 3 primero revisa la rama actual. Si no es la default ni `spec-NN-slug` — el caso cuando una herramienta de tickets (p.ej. Forge) ya creó la rama de trabajo — la conserva y omite `AutoCreateBranch` por completo: una rama de trabajo por tarea, creada una sola vez. En caso contrario lee el flag `AutoCreateBranch` de `specs/.spec-config.yml`. Por defecto es `true` (crea la rama automáticamente). Ponlo en `false` para que `/spec-impl` pregunte `[s/N]` antes de crear cualquier rama — útil si el nombrado de ramas es parte de tu propio Git workflow.
 >
