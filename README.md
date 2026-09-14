@@ -9,7 +9,7 @@
   <img alt="License" src="https://img.shields.io/github/license/elmerjacobo97/spec-flow-skills">
   <img alt="Latest Release" src="https://img.shields.io/github/v/release/elmerjacobo97/spec-flow-skills">
   <img alt="GitHub Stars" src="https://img.shields.io/github/stars/elmerjacobo97/spec-flow-skills?style=social">
-  <img alt="Skills" src="https://img.shields.io/badge/skills-3-blue">
+  <img alt="Skills" src="https://img.shields.io/badge/skills-4-blue">
 </p>
 
 ## Quick start
@@ -24,6 +24,7 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 | --- | --- | --- |
 | `/product-spec` | Defines the business case before the technical spec: evidence, metric, 20% version, kill criterion | `[short topic]` |
 | `/spec` | Designs the feature document by asking clarifying questions | — |
+| `/spec-edit` | Edits an existing spec in place: impact analysis, one preview confirmation, minimal diff | `<NN-slug> [change]` |
 | `/spec-impl` | Validates the spec is approved and implements it group by group, pausing for review and commit after each group | `<NN-slug> [--one-shot]` |
 
 ---
@@ -345,6 +346,19 @@ Designs the feature document. Goes through four phases:
 3. **Section by section development** — generates and confirms each spec section before moving on.
 4. **Save** — writes the file in `specs/NN-slug.md` with status `Draft`.
 
+#### `/spec-edit <NN-name> [what-to-change]`
+
+Revises an existing spec in place — no regeneration, no new file. Goes through this flow:
+
+1. **Identify** — locates the spec file (same flexible matching as `/spec-impl`).
+2. **Read and index** — sections by meaning, current status, which steps are already checked.
+3. **Understand the change** — if your request is already clear it skips straight ahead; otherwise it asks one block of 2–4 concrete questions. It also applies the update-vs-new-spec rule: same work refined → edit; intent changed or scope exploded → it recommends a new `/spec` instead.
+4. **Impact analysis and preview** — shows the exact edits (`old → new`) per section, plus the cascades (scope change → plan and criteria) and any conflict, like an edit touching a step already marked `- [x]`.
+5. **One confirmation → apply** — minimal diffs, spec language and format preserved, header date updated. The status line is never touched.
+6. **Coherence check and summary** — reports anything left loose and warns when the spec needs human re-approval (it was `Approved`) or may now diverge from code (it was `Implemented`).
+
+> **Status stays human-owned:** `/spec-edit` never edits the `Status:` / `Estado:` line. If the spec was `Approved` before the edit, re-approve it manually once you are happy — `/spec-impl` only works with an approved spec.
+
 #### `/spec-impl <NN-name>`
 
 Implements an approved spec. Goes through four phases:
@@ -402,6 +416,8 @@ Implements an approved spec. Goes through four phases:
 ```
 
 The gap between the two skills — re-reading and changing the status by hand — is deliberate. It's the only moment where **only you can do something**. Without that gap, the method degrades to "Claude writes pretty documentation and then writes whatever code occurs to it anyway".
+
+If the spec needs changes before or after approval, `/spec-edit` revises it in place — and the human still re-approves it before implementation continues.
 
 ---
 

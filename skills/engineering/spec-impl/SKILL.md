@@ -215,7 +215,7 @@ Wait for explicit confirmation ("yes", "go ahead", "go", or equivalent). Then, f
 
 **Rules that hold in both modes:**
 
-**One rule above all:** implement what the spec says. If something in the spec looks suboptimal to you, mention it as an observation but implement what was agreed. Changes to the spec go into the spec, not into the code by surprise.
+**One rule above all:** implement what the spec says. If something in the spec looks suboptimal to you, mention it as an observation but implement what was agreed. Changes to the spec go into the spec, not into the code by surprise (use `/spec-edit` for that).
 
 **Only three reasons to stop mid-run:**
 

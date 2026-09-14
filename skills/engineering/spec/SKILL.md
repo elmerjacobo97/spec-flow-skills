@@ -116,6 +116,7 @@ When all sections are confirmed:
    - Reminder: the spec is in `Draft` state. Change it to `Approved` once you have re-read it.
    - If you just created `specs/.spec-config.yml`, mention it exists and that `AutoCreateBranch` defaults to `true` (set it to `false` to control branch creation yourself).
    - Next step: once reviewed and approved, run `/spec-impl NN-slug` to implement it.
+   - To change the spec later, use `/spec-edit NN-slug` — it edits in place, keeps the state human-owned, and warns when re-approval is needed.
    - Optional before implementing: split the spec into tracker tickets (e.g. Forge, skill `forge-tickets`), one per implementation-plan group, with `Spec: specs/NN-slug.md` in each description. Then either work each ticket — `/spec-impl` reuses the ticket's work branch — or run `/spec-impl NN-slug` directly.
    - **Stop here.** Do not propose implementing the spec, writing code, or taking any further action beyond this confirmation.
 

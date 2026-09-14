@@ -29,7 +29,7 @@ Companion files (e.g., `template.md`) sit next to `SKILL.md` and are referenced 
 
 ## The spec workflow
 
-This repo encodes a three-skill chain: `/product-spec` (optional) → `/spec` → `/spec-impl`.
+This repo encodes a skill chain: `/product-spec` (optional) → `/spec` → `/spec-impl`, plus `/spec-edit` to revise an existing spec in place at any point.
 
 ### `/product-spec`
 
@@ -58,6 +58,17 @@ Output file format: `specs/NN-slug.md` with a header block:
 
 Valid states: `Borrador` → `En revisión` → `Aprobado` → `Implementado` · `Obsoleto`
 
+### `/spec-edit`
+
+Accepts `<NN-slug>` plus an optional free-text change request (e.g. `/spec-edit 03-levels "remove the combo system"`). Locates the spec with the same flexible matching as `/spec-impl`, reads and indexes it (sections by meaning, current state, which steps are checked), then:
+
+- If the request is vague: asks one block of 2–4 concrete questions.
+- Applies the update-vs-new-spec rule: same work refined → edit; intent fundamentally changed or scope exploded → recommends a new `/spec` instead.
+- Impact analysis and preview: exact edits (`old → new`) per section, cascades (scope change → plan and criteria, reverted decision → decisions section), and conflicts (an edit touching a step already marked `- [x]`).
+- One confirmation → applies minimal diffs, preserving language, heading and checkbox format; updates the header date.
+
+Hard rules: edits only `specs/NN-slug.md` (never the `.brief.md`), never writes code, never regenerates the document, never unchecks `- [x]` without explicit permission, and **never edits `**Estado:**`**. If the spec was `Aprobado`, it tells the human to re-approve; if it was `Implementado`, it warns about code drift.
+
 ### `/spec-impl`
 
 Accepts `<NN-slug>` as argument. Phases:
@@ -70,6 +81,8 @@ Accepts `<NN-slug>` as argument. Phases:
 Branch creation in step 3 is gated by the `AutoCreateBranch` flag, read at skill-load time from `specs/.spec-config.yml` via a `!`cat`` snippet. Default (file or value absent) is `true` → branch is created automatically when starting from the default branch. An explicit `false` makes the skill ask `[y/N]` before creating the branch; on decline it implements on the current branch. The existing-work-branch rule takes precedence over the flag: in the ticket flow no branch is created and no question is asked. There is still no runtime config infra — the flag is just a value injected into the prompt and interpreted by the model.
 
 At completion it prints a chat summary (steps, files, why, verified/pending criteria) and reminds the user to review the diff, commit, and mark the spec `Implementado` manually before merging.
+
+Changes to an approved spec go through `/spec-edit` and require the human to re-approve before the next `/spec-impl` run.
 
 ### Tickets bridge (optional)
 
