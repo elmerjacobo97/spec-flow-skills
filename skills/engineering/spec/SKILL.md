@@ -28,6 +28,7 @@ Before asking questions about the feature, make sure you have project context:
 2. List the contents of `specs/` to see which specs already exist and how they are numbered.
 3. If previous specs exist, read at least the two most recent ones to pick up the project's conventions.
 4. Check whether a `specs/NN-slug.brief.md` exists whose slug matches the feature being described. If it does, read it — it carries the business case (evidence, metric, kill criterion) produced by `/product-spec`, and this technical spec must reuse its exact `NN-slug` (see Phase 4, step 1) rather than being assigned a new number. If no matching brief exists and the feature's value or audience is not already obvious from the conversation, mention that `/product-spec` exists for this — but do not require it or block on it.
+5. If the feature is still a fuzzy idea rather than a description (several approaches, unclear tradeoffs), suggest exploring it first with `/spec-explore` — it reads the code and creates nothing.
 
 If the `$ARGUMENTS` argument comes in empty, ask the user for an initial **single-sentence** description of what they want to build. If the description does not fit in one sentence, that is the first signal that the feature is too big — suggest splitting it before continuing.
 

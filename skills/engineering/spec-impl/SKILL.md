@@ -241,7 +241,7 @@ Why:        <key decisions or deviations during the whole run — or "no deviati
 Verified:   <acceptance criteria marked [x], with the evidence used>
 Pending:    <criteria left unchecked and why they need human review>
 Next:       review the final diff, commit, set the spec's state to "Implemented"
-            manually, then merge.
+            manually, then merge. Optionally run /spec-verify for an independent audit.
 ```
 
 ---

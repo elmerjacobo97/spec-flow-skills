@@ -9,7 +9,7 @@
   <img alt="License" src="https://img.shields.io/github/license/elmerjacobo97/spec-flow-skills">
   <img alt="Latest Release" src="https://img.shields.io/github/v/release/elmerjacobo97/spec-flow-skills">
   <img alt="GitHub Stars" src="https://img.shields.io/github/stars/elmerjacobo97/spec-flow-skills?style=social">
-  <img alt="Skills" src="https://img.shields.io/badge/skills-4-blue">
+  <img alt="Skills" src="https://img.shields.io/badge/skills-7-blue">
 </p>
 
 ## Quick start
@@ -22,10 +22,13 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 
 | Skill | Description | Argument |
 | --- | --- | --- |
+| `/spec-explore` | Thinks through a fuzzy idea against the real code — options, tradeoffs, no artifacts | `[topic]` |
 | `/product-spec` | Defines the business case before the technical spec: evidence, metric, 20% version, kill criterion | `[short topic]` |
 | `/spec` | Designs the feature document by asking clarifying questions | — |
 | `/spec-edit` | Edits an existing spec in place: impact analysis, one preview confirmation, minimal diff | `<NN-slug> [change]` |
 | `/spec-impl` | Validates the spec is approved and implements it group by group, pausing for review and commit after each group | `<NN-slug> [--one-shot]` |
+| `/spec-status` | Read-only board of all specs: state, progress, dependencies, next action | — |
+| `/spec-verify` | Audits spec ↔ code: completeness, correctness, coherence; reports, never fixes | `<NN-slug>` |
 
 ---
 
@@ -296,7 +299,10 @@ Optionally, add a `specs/README.md` documenting the convention (see the example 
 ### Full feature cycle
 
 ```bash
-# 0. (Optional) Define the business case first — evidence, metric, kill criterion
+# 0. (Optional) Not sure how to approach it yet? Explore first — no files created
+/spec-explore levels-and-highscores
+
+# 0b. (Optional) Define the business case — evidence, metric, kill criterion
 /product-spec levels-and-highscores
 
 # Only worth doing if the feature's value or audience isn't already obvious.
@@ -323,9 +329,23 @@ Optionally, add a `specs/README.md` documenting the convention (see the example 
 # one group, ticks it off in the spec, and stops for your review
 # and commit. Say "continue" for the next group. Add --one-shot
 # to skip the pauses on small specs.
+
+# 4. (Optional) Audit that the code matches the spec
+/spec-verify 03-levels-and-highscores
+
+# Anytime: /spec-status shows every spec — state, progress, dependencies.
 ```
 
 ### What each skill does
+
+#### `/spec-explore [topic]`
+
+A no-stakes thinking partner for ideas that are not ready for a spec yet:
+
+1. **Investigate** — reads the relevant code and cites what exists today.
+2. **Options** — presents 2-3 concrete approaches with tradeoffs and one recommendation.
+3. **Iterate** — digs deeper across turns while the idea sharpens.
+4. **Handoff** — when the idea is clear enough to boundary it, it points to `/product-spec` (value still unclear) or `/spec` (ready). It creates nothing.
 
 #### `/product-spec [short-topic]`
 
@@ -378,6 +398,24 @@ Implements an approved spec. Goes through four phases:
 > # specs/.spec-config.yml
 > AutoCreateBranch: false
 > ```
+
+#### `/spec-status`
+
+Read-only board of everything in `specs/`:
+
+1. **Inventory** — specs, product briefs, and config, separated.
+2. **Read** — state, dependencies, and plan/criteria checkbox counts per spec.
+3. **Board** — one table sorted by number, with flags: `Implementado` with unchecked criteria, a dependency that is not `Implementado`, a header with a broken state.
+4. **Next actions** — one suggested action per pending spec. It never executes them.
+
+#### `/spec-verify <NN-name>`
+
+Independent audit of an implementation against its spec — re-runnable at any time, including months later to catch drift:
+
+1. **Index** — plan steps, criteria, decisions, and the data model.
+2. **Evidence** — searches the code for each claim (a checkbox is a claim, not evidence) and runs tests/build/lint when the project defines them.
+3. **Report** — completeness, correctness, coherence; each finding tagged CRITICAL / WARNING / SUGGESTION with a `file:line`.
+4. **Verdict** — plus the mismatch direction: spec stale → `/spec-edit`; code drifted → fix the code. It is read-only: it never fixes anything itself.
 
 ### Spec states
 

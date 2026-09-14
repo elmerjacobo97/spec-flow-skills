@@ -9,7 +9,7 @@
   <img alt="Licencia" src="https://img.shields.io/github/license/elmerjacobo97/spec-flow-skills">
   <img alt="Último release" src="https://img.shields.io/github/v/release/elmerjacobo97/spec-flow-skills">
   <img alt="GitHub Stars" src="https://img.shields.io/github/stars/elmerjacobo97/spec-flow-skills?style=social">
-  <img alt="Skills" src="https://img.shields.io/badge/skills-4-blue">
+  <img alt="Skills" src="https://img.shields.io/badge/skills-7-blue">
 </p>
 
 ## Inicio rápido
@@ -22,10 +22,13 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 
 | Skill | Descripción | Argumento |
 | --- | --- | --- |
+| `/spec-explore` | Piensa una idea difusa contra el código real — opciones, tradeoffs, sin artefactos | `[tema]` |
 | `/product-spec` | Define el caso de negocio antes del spec técnico: evidencia, métrica, versión 20%, criterio de kill | `[tema corto]` |
 | `/spec` | Diseña el documento de la feature haciendo preguntas de clarificación | — |
 | `/spec-edit` | Edita un spec existente en el lugar: análisis de impacto, un preview, un solo diff mínimo | `<NN-slug> [cambio]` |
 | `/spec-impl` | Valida que el spec esté aprobado y lo implementa por grupos, pausando para revisar y commitear tras cada grupo | `<NN-slug> [--one-shot]` |
+| `/spec-status` | Tablero read-only de todos los specs: estado, progreso, dependencias, próxima acción | — |
+| `/spec-verify` | Audita spec ↔ código: completitud, corrección, coherencia; reporta, nunca arregla | `<NN-slug>` |
 
 ---
 
@@ -286,7 +289,10 @@ Opcionalmente, añade un `specs/README.md` que documente la convención (ver el 
 ### Ciclo completo de una feature
 
 ```bash
-# 0. (Opcional) Define el caso de negocio primero — evidencia, métrica, criterio de kill
+# 0. (Opcional) ¿No sabes aún cómo abordarlo? Explora primero — no crea archivos
+/spec-explore niveles-y-highscores
+
+# 0b. (Opcional) Define el caso de negocio — evidencia, métrica, criterio de kill
 /product-spec niveles-y-highscores
 
 # Solo vale la pena si el valor o la audiencia de la feature no es ya obvio.
@@ -313,9 +319,23 @@ Opcionalmente, añade un `specs/README.md` que documente la convención (ver el 
 # el spec y se detiene para que revises y commitees. Dices
 # "continúa" para el siguiente grupo. Agrega --one-shot para
 # saltarte las pausas en specs chicos.
+
+# 4. (Opcional) Audita que el código coincida con el spec
+/spec-verify 03-niveles-y-highscores
+
+# En cualquier momento: /spec-status muestra todos los specs — estado, progreso, dependencias.
 ```
 
 ### Qué hace cada skill
+
+#### `/spec-explore [tema]`
+
+Un partner de pensamiento sin stakes para ideas que aún no están listas para un spec:
+
+1. **Investiga** — lee el código relevante y cita lo que existe hoy.
+2. **Opciones** — presenta 2-3 enfoques concretos con tradeoffs y una recomendación.
+3. **Itera** — profundiza turno a turno mientras la idea se afina.
+4. **Handoff** — cuando la idea ya se puede delimitar, apunta a `/product-spec` (valor aún difuso) o `/spec` (lista). No crea nada.
 
 #### `/product-spec [tema-corto]`
 
@@ -368,6 +388,24 @@ Implementa un spec aprobado. Pasa por cuatro fases:
 > # specs/.spec-config.yml
 > AutoCreateBranch: false
 > ```
+
+#### `/spec-status`
+
+Tablero read-only de todo lo que vive en `specs/`:
+
+1. **Inventario** — specs, briefs de producto y config, separados.
+2. **Lectura** — estado, dependencias y conteo de checkboxes de plan/criterios por spec.
+3. **Tablero** — una tabla ordenada por número, con banderas: `Implementado` con criterios sin marcar, dependencia que no está `Implementado`, header con estado roto.
+4. **Próximas acciones** — una acción sugerida por spec pendiente. Nunca las ejecuta.
+
+#### `/spec-verify <NN-nombre>`
+
+Auditoría independiente de una implementación contra su spec — re-ejecutable en cualquier momento, incluso meses después para detectar drift:
+
+1. **Indexa** — pasos del plan, criterios, decisiones y modelo de datos.
+2. **Evidencia** — busca en el código cada afirmación (un checkbox es una afirmación, no evidencia) y corre tests/build/lint si el proyecto los define.
+3. **Reporta** — completitud, corrección, coherencia; cada hallazgo etiquetado CRITICAL / WARNING / SUGGESTION con `file:line`.
+4. **Veredicto** — más la dirección del desajuste: spec viejo → `/spec-edit`; código drift → arreglar el código. Es read-only: nunca arregla nada por su cuenta.
 
 ### Estados de un spec
 

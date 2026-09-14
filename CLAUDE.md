@@ -29,7 +29,7 @@ Companion files (e.g., `template.md`) sit next to `SKILL.md` and are referenced 
 
 ## The spec workflow
 
-This repo encodes a skill chain: `/product-spec` (optional) → `/spec` → `/spec-impl`, plus `/spec-edit` to revise an existing spec in place at any point.
+This repo encodes a skill chain: `/product-spec` (optional) → `/spec` → `/spec-impl`, plus `/spec-edit` to revise an existing spec in place at any point. Three auxiliary skills round it out: `/spec-explore` (optional pre-spec thinking pass, creates nothing), `/spec-status` (read-only board of `specs/`), and `/spec-verify` (read-only audit of spec ↔ code, re-runnable).
 
 ### `/product-spec`
 
@@ -83,6 +83,14 @@ Branch creation in step 3 is gated by the `AutoCreateBranch` flag, read at skill
 At completion it prints a chat summary (steps, files, why, verified/pending criteria) and reminds the user to review the diff, commit, and mark the spec `Implementado` manually before merging.
 
 Changes to an approved spec go through `/spec-edit` and require the human to re-approve before the next `/spec-impl` run.
+
+### Auxiliary skills
+
+`/spec-explore [topic]` — optional thinking pass before a spec exists. Reads the code, presents 2–3 concrete options with tradeoffs, creates nothing, and ends by recommending `/product-spec` or `/spec`.
+
+`/spec-status` — read-only board of `specs/`: state, dependencies, plan/criteria progress per spec, flags for stale or blocked specs, and one suggested next action each. It never executes actions.
+
+`/spec-verify <NN-slug>` — read-only audit of an implementation against its spec, re-runnable at any time (before merging, after refactors, or later for drift). Reports completeness/correctness/coherence with CRITICAL/WARNING/SUGGESTION severities and a mismatch-direction verdict: spec stale → `/spec-edit`; code drifted → fix the code. Never edits code, checkboxes, or `Estado`.
 
 ### Tickets bridge (optional)
 
