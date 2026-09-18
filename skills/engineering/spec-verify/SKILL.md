@@ -1,6 +1,6 @@
 ---
 name: spec-verify
-description: Audits whether an implementation matches its spec — completeness, correctness, coherence — with CRITICAL/WARNING/SUGGESTION findings and a mismatch-direction verdict. Read-only: it never edits code, checkboxes, or the state line. Use after /spec-impl, before merging, or later to catch drift.
+description: Audits whether an implementation matches its spec — completeness, correctness, coherence — with CRITICAL/WARNING/SUGGESTION findings and a mismatch-direction verdict. Read-only. It never edits code, checkboxes, or the state line. Use after /spec-impl, before merging, or later to catch drift.
 disable-model-invocation: true
 argument-hint: <NN-spec-name>
 allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(cat:*), Bash(ls:*)
