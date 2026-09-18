@@ -3,7 +3,7 @@ name: spec-impl
 description: Implements an approved spec group by group. Validates that the state means "Approved" (in any language), resolves the git branch (reuses the ticket work branch when one is active, otherwise creates spec-NN-slug), ticks off the implementation plan inside the spec as it progresses, stops after each group for review and commit, and verifies the acceptance criteria at the end. With --one-shot it runs every group without pauses.
 disable-model-invocation: true
 argument-hint: <NN-spec-name> [--one-shot]
-allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git symbolic-ref:*), Bash(cat:*), Bash(ls:*)
+allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git symbolic-ref:*), Bash(git add:*), Bash(git commit:*), Bash(git merge:*), Bash(git log:*), Bash(git diff:*), Bash(cat:*), Bash(ls:*)
 ---
 
 # /spec-impl — Implementer of approved specs
@@ -223,6 +223,8 @@ Wait for explicit confirmation ("yes", "go ahead", "go", or equivalent). Then, f
 2. **A step fails** or leaves the project broken (tests, build, or the step's own check fail): stop, report what failed, and do **not** mark that step `- [x]`.
 3. **The user asks for something out of scope:** remind them it is out of this spec's scope, suggest noting it for the next spec, do not implement it on this branch.
 
+**Keep a running list of your own changes.** From the first group on, accumulate every file you create or modify during this run (each group summary already prints a `Files:` line). Phase 5 needs that list to tell your changes apart from the human's: any pending change not on the list is a foreign change and requires explicit approval before it can enter the close commit.
+
 **When the last group is done — verify the acceptance criteria:**
 
 1. Go through the spec's acceptance criteria one by one.
@@ -240,9 +242,61 @@ Files:      <paths touched>
 Why:        <key decisions or deviations during the whole run — or "no deviations">
 Verified:   <acceptance criteria marked [x], with the evidence used>
 Pending:    <criteria left unchecked and why they need human review>
-Next:       review the final diff, commit, set the spec's state to "Implemented"
-            manually, then merge. Optionally run /spec-verify for an independent audit.
+Next:       optionally run /spec-verify for an independent audit. When it
+            passes, say "cierra la spec" to mark the spec Implemented,
+            commit the pending changes, merge into <default branch> (no push)
+            and delete the local branch. Publishing stays manual.
 ```
+
+---
+
+### Phase 5 — Close the spec (on request only)
+
+This phase runs **only** when the human explicitly asks to close this spec ("cierra la spec", "close the spec", or an equivalent phrase), after a Phase 4 run. Never start it on your own initiative, not even when the implementation went perfectly.
+
+**Step 1 — State gate.** Read the spec's state line first, matching by meaning (same logic as Phase 2, any language):
+
+| State found                                                   | Action                                                                                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Already means "Implemented" (`Implementado`, `Implemented`, …) | Do not rewrite it. Note "already Implemented" and continue.                                                                     |
+| Means "Approved" (`Aprobado`, `Approved`, …)                   | Change it to the Implemented equivalent **using the file's own label and language** (`**Estado:** Implementado` / `**Status:** Implemented`) as part of the close commit. |
+| Anything else (Draft, In review, Obsolete, unrecognized)      | **Refuse to close.** Show the state found; only approved or already-implemented specs can be closed. Do not commit, merge, or delete. |
+
+**Step 2 — Classify the pending changes.** Run `git status --short` and split every pending file into two buckets:
+
+1. **Files you touched during this run** — from the running list you kept in Phase 4. These enter the proposed commit.
+2. **Files you did not touch** — a dependency the human added, a manual edit, an untracked file. These are **foreign changes**. Never include or revert one without explicit approval.
+
+If you have no reliable run list (context compaction, a different session), treat **every** pending file as foreign.
+
+**Step 3 — One confirmation, with everything visible.** Resolve foreign changes first, then present:
+
+```
+Close specs/NN-slug.md?
+
+State:   <current> → <new>            (or "already Implemented — no change")
+Branch:  <current branch> → <default branch>
+Commit:  feat(spec-NN-slug): <objective from the spec>
+
+⚠ Changes I did not make:
+  - <path>  <modified|untracked>  → include / diff / revert / leave out
+
+Then: merge into <default branch> (NO push), delete local branch <branch>.
+
+Proceed? [y/N]
+```
+
+Per foreign change, offer: `include` (enters the commit), `diff` (show `git diff <path>` and ask again), `revert` (`git checkout -- <path>`, tracked files only — **never delete an untracked file yourself**, tell the human to remove it), or `leave out` (stays uncommitted). Wait for `[y/N]` before touching git.
+
+**Step 4 — Commit.** Stage only the approved paths with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(spec-NN-slug): <objective>`), including the state change when it applies. If the tree is clean, skip the commit and say so.
+
+**Step 5 — Merge into the default branch.** If the current branch **is** the default branch, there is nothing to merge — skip to Step 6. Otherwise `git checkout <default branch>` then `git merge <branch>` (fast-forward when possible). On any conflict: stop, report the conflicting files, leave the repository on the default branch, and never resolve the conflict or force anything by yourself.
+
+**Step 6 — Delete the local branch.** `git branch -d <branch>` (safe delete; it refuses unmerged branches). If the branch is a ticket branch (`feat/…`, `fix/…` — anything that is not `spec-NN-slug`), ask before deleting it. If `-d` fails, report why and stop. **Never use `-D`.**
+
+**Step 7 — Close out.** State plainly that: the branch was merged locally and deleted, **nothing was pushed**, and publishing is the human's (`git push`). Mention the spec is now marked Implemented when that change was applied.
+
+Hard rules for this phase: never `git push` or touch a remote; never `-D`; never revert or delete a file the human did not explicitly approve; never edit the state line outside the gate in Step 1.
 
 ---
 
@@ -278,6 +332,12 @@ Next:       review the final diff, commit, set the spec's state to "Implemented"
   Phase 2  →  Reads the state → "Draft" → ❌ stops
               Shows the standard error message
               Does not create branch, does not touch code
+
+/spec-impl 03-levels-and-highscores  →  then the human says "cierra la spec"  (state: Aprobado)
+
+  Phase 5  →  State gate: Aprobado → Implementado
+              Splits pending changes into mine vs not mine; foreign changes need approval
+              One confirmation → commit → merge into main (no push) → delete the local branch
 ```
 
 **Branch creation is controlled by the `AutoCreateBranch` flag** in `specs/.spec-config.yml`. It defaults to `true` (create the branch automatically when starting from the default branch). Set it to `false` to make Phase 3 ask `[y/N]` before creating the branch. The existing-work-branch rule (ticket flow) takes precedence over `AutoCreateBranch`: in that case no branch is created and no question is asked.
@@ -285,3 +345,5 @@ Next:       review the final diff, commit, set the spec's state to "Implemented"
 **Flat plans get grouped, not guessed:** if an approved spec has a flat checklist or an older numbered list, Phase 4 proposes a grouping, writes it into the spec after one confirmation, and then implements group by group. The grouping stays in the spec, so a resumed run knows exactly where it stopped.
 
 **`--one-shot`** is the only argument flag. It skips the between-group pauses (and the review they force) for specs small enough that a single review at the end is enough. It never skips the ambiguity and broken-step stops.
+
+**Closing is explicit, verified, and local.** Phase 5 only runs when the human asks for it by phrase, after the implementation. It refuses specs that are not approved or already implemented, it asks before touching any change the agent did not make, and it never publishes: commit, merge into the default branch, and delete the local branch happen on your machine, and `git push` stays in the human's hands — the single automatic state edit in the whole workflow (`Aprobado` → `Implementado`) lives here, behind one confirmation.
