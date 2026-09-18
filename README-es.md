@@ -9,7 +9,7 @@
   <img alt="Licencia" src="https://img.shields.io/github/license/elmerjacobo97/spec-flow-skills">
   <img alt="Último release" src="https://img.shields.io/github/v/release/elmerjacobo97/spec-flow-skills">
   <img alt="GitHub Stars" src="https://img.shields.io/github/stars/elmerjacobo97/spec-flow-skills?style=social">
-  <img alt="Skills" src="https://img.shields.io/badge/skills-7-blue">
+  <img alt="Skills" src="https://img.shields.io/badge/skills-8-blue">
 </p>
 
 ## Inicio rápido
@@ -27,6 +27,7 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 | `/spec` | Diseña el documento de la feature haciendo preguntas de clarificación | — |
 | `/spec-edit` | Edita un spec existente en el lugar: análisis de impacto, un preview, un solo diff mínimo | `<NN-slug> [cambio]` |
 | `/spec-impl` | Valida que el spec esté aprobado y lo implementa por grupos, pausando para revisar y commitear tras cada grupo | `<NN-slug> [--one-shot]` |
+| `/spec-close` | Cierra un spec implementado: gate de estado a `Implementado`, commit selectivo y luego `CloseMode` (merge local o flujo MR). Nunca pushea | `<NN-slug>` |
 | `/spec-status` | Tablero read-only de todos los specs: estado, progreso, dependencias, próxima acción | — |
 | `/spec-verify` | Audita spec ↔ código: completitud, corrección, coherencia; reporta, nunca arregla | `<NN-slug>` |
 
@@ -323,6 +324,14 @@ Opcionalmente, añade un `specs/README.md` que documente la convención (ver el 
 # 4. (Opcional) Audita que el código coincida con el spec
 /spec-verify 03-niveles-y-highscores
 
+# 5. Ciérralo
+/spec-close 03-niveles-y-highscores
+
+# Marca el spec Implementado y commitea lo pendiente (preguntando antes por
+# los cambios que no hizo el agente). CloseMode controla el resto: local →
+# merge a main (sin push) + borra la rama; pr → conserva la rama para el MR,
+# y corres /spec-close otra vez después del merge.
+
 # En cualquier momento: /spec-status muestra todos los specs — estado, progreso, dependencias.
 ```
 
@@ -378,6 +387,8 @@ Implementa un spec aprobado. Pasa por cuatro fases:
 3. **Resolver rama** — reutiliza la rama de ticket activa (`feat/...`, `fix/...`) si existe; si no, crea y se mueve a `spec-NN-slug`.
 4. **Implementar** — por grupos. Marca cada paso `- [x]` dentro del spec al completar un grupo y se detiene con un mini-resumen para que revises y commitees. Dices "continúa" para el siguiente grupo. Verifica los criterios de aceptación con evidencia real al final y cierra con un resumen. Solo se detiene a mitad de grupo ante una ambigüedad o un paso que rompe el proyecto.
 
+Nunca commitea, mergea ni cierra el spec: el resumen final pasa la posta a `/spec-verify` y `/spec-close`.
+
 > **Los grupos viven en el spec:** el plan de implementación es una lista de checkboxes agrupada (`### Grupo N — …` + `- [ ] N.M`). Si un spec viejo está plano, `/spec-impl` propone una agrupación, la escribe en el spec tras tu confirmación y luego implementa grupo por grupo. Una corrida interrumpida reanuda desde el primer box sin marcar, y al final solo se marcan los criterios que se pudieron probar con evidencia — el resto te espera.
 
 > **`--one-shot`:** `/spec-impl 03-niveles-y-highscores --one-shot` corre todos los grupos sin las pausas intermedias. Útil cuando el spec es chico y basta con una revisión al final.
@@ -387,6 +398,26 @@ Implementa un spec aprobado. Pasa por cuatro fases:
 > ```yaml
 > # specs/.spec-config.yml
 > AutoCreateBranch: false
+> ```
+
+#### `/spec-close <NN-nombre>`
+
+Cierra un spec implementado. Corre solo cuando se invoca explícitamente — es el único skill que puede escribir `Implementado`:
+
+1. **Identificar** — localiza el spec (mismo matching flexible que los demás; sin argumento lo infiere de la rama `spec-NN-slug` activa o pregunta).
+2. **Gate de estado** — `Aprobado` → `Implementado` (con la etiqueta e idioma del propio archivo); ya `Implementado` → sin cambio; cualquier otro → rechaza.
+3. **Separar cambios** — divide `git status --short` entre los cambios del agente y los ajenos (una dependencia que agregaste, una edición manual). Los ajenos nunca se incluyen ni se revierten sin tu elección explícita por archivo: incluir / ver diff / revertir (solo tracked) / dejar fuera.
+4. **Una confirmación** con el preview completo, y luego un commit selectivo `feat(spec-NN-slug): <objetivo>` — nunca `git add -A`.
+5. **Seguir `CloseMode`** de `specs/.spec-config.yml`:
+   - **`local`** — mergea la rama de trabajo a la rama default y borra la rama local. No se pushea nada.
+   - **`pr`** — commitea y se detiene; la rama queda viva para el MR. Tú pusheas y lo abres, y cuando se mergea corres `/spec-close` otra vez: verifica que el merge llegó a la default, corre `git pull` y borra la rama local con safe delete (`git branch -d`, nunca `-D`). La rama remota la borras tú.
+
+> **Control del cierre:** `CloseMode` vive en `specs/.spec-config.yml`. Si el flag falta, `/spec-close` pregunta `[l] merge local + borrar / [p] conservar la rama para el MR` en su confirmación — nunca asume. En ambos modos `git push` queda de tu lado.
+>
+> ```yaml
+> # specs/.spec-config.yml
+> AutoCreateBranch: true
+> CloseMode: pr
 > ```
 
 #### `/spec-status`
@@ -405,7 +436,7 @@ Auditoría independiente de una implementación contra su spec — re-ejecutable
 1. **Indexa** — pasos del plan, criterios, decisiones y modelo de datos.
 2. **Evidencia** — busca en el código cada afirmación (un checkbox es una afirmación, no evidencia) y corre tests/build/lint si el proyecto los define.
 3. **Reporta** — completitud, corrección, coherencia; cada hallazgo etiquetado CRITICAL / WARNING / SUGGESTION con `file:line`.
-4. **Veredicto** — más la dirección del desajuste: spec viejo → `/spec-edit`; código drift → arreglar el código. Es read-only: nunca arregla nada por su cuenta.
+4. **Veredicto** — más la dirección del desajuste: spec viejo → `/spec-edit`; código drift → arreglar el código. Es read-only: nunca arregla nada por su cuenta. Cuando la auditoría está limpia, el siguiente paso es `/spec-close NN-slug`.
 
 ### Estados de un spec
 
@@ -414,10 +445,12 @@ Auditoría independiente de una implementación contra su spec — re-ejecutable
 | `Borrador`     | El skill `/spec` lo generó pero el humano no lo ha releído.              |
 | `En revisión`  | El humano lo está revisando o iterando con Claude.                       |
 | `Aprobado`     | El humano lo leyó y autorizó. `/spec-impl` solo trabaja con este estado. |
-| `Implementado` | El código existe y pasa los criterios de aceptación.                     |
+| `Implementado` | El código existe y pasa los criterios de aceptación. `/spec-close` lo escribe cuando cierras el spec. |
 | `Obsoleto`     | Reemplazado por otro spec. No se borra — se referencia.                  |
 
 **Cambiar el estado a `Aprobado` es un acto humano deliberado.** Es la única firma del contrato — Claude no puede aprobar su propio trabajo.
+
+> La única escritura de estado que puede hacer el agente es `Aprobado` → `Implementado`, dentro de `/spec-close` — y solo porque lo invocaste y confirmaste el preview.
 
 ---
 

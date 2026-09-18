@@ -3,7 +3,7 @@ name: spec-impl
 description: Implements an approved spec group by group. Validates that the state means "Approved" (in any language), resolves the git branch (reuses the ticket work branch when one is active, otherwise creates spec-NN-slug), ticks off the implementation plan inside the spec as it progresses, stops after each group for review and commit, and verifies the acceptance criteria at the end. With --one-shot it runs every group without pauses.
 disable-model-invocation: true
 argument-hint: <NN-spec-name> [--one-shot]
-allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git symbolic-ref:*), Bash(git add:*), Bash(git commit:*), Bash(git merge:*), Bash(git pull:*), Bash(git log:*), Bash(git diff:*), Bash(cat:*), Bash(ls:*)
+allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git symbolic-ref:*), Bash(cat:*), Bash(ls:*)
 ---
 
 # /spec-impl — Implementer of approved specs
@@ -223,7 +223,7 @@ Wait for explicit confirmation ("yes", "go ahead", "go", or equivalent). Then, f
 2. **A step fails** or leaves the project broken (tests, build, or the step's own check fail): stop, report what failed, and do **not** mark that step `- [x]`.
 3. **The user asks for something out of scope:** remind them it is out of this spec's scope, suggest noting it for the next spec, do not implement it on this branch.
 
-**Keep a running list of your own changes.** From the first group on, accumulate every file you create or modify during this run (each group summary already prints a `Files:` line). Phase 5 needs that list to tell your changes apart from the human's: any pending change not on the list is a foreign change and requires explicit approval before it can enter the close commit.
+**Keep a running list of your own changes.** From the first group on, accumulate every file you create or modify during this run (each group summary already prints a `Files:` line). The `/spec-close` skill uses that list to tell your changes apart from the human's: any pending change not on the list is a foreign change and requires explicit approval before it can enter the close commit.
 
 **When the last group is done — verify the acceptance criteria:**
 
@@ -243,102 +243,10 @@ Why:        <key decisions or deviations during the whole run — or "no deviati
 Verified:   <acceptance criteria marked [x], with the evidence used>
 Pending:    <criteria left unchecked and why they need human review>
 Next:       optionally run /spec-verify for an independent audit. When it
-            passes, ask to close the spec ("cierra la spec" / "close the
-            spec" — any language) to mark it Implemented, commit the pending
-            changes, merge into <default branch> (no push) and delete the
-            local branch. Publishing stays manual.
+            passes, run /spec-close NN-slug to mark the spec Implemented,
+            commit the pending changes, and follow CloseMode (local merge
+            or branch kept for the MR). Publishing stays manual.
 ```
-
----
-
-### Phase 5 — Close the spec (on request only)
-
-This phase runs **only** when the human explicitly asks to close this spec after a Phase 4 run. Never start it on your own initiative, not even when the implementation went perfectly.
-
-**Trigger — match by meaning, not by wording** (same principle as the state line in Phase 2). Any phrase, in any language, that clearly means "close / finish the spec" activates the phase:
-
-- Spanish: "cierra la spec", "cierre la spec", "cierra esta spec"
-- English: "close the spec", "close this spec", "finish the spec"
-- Portuguese: "fecha a spec" · French: "ferme la spec" · German: "schließe die Spec" · Italian: "chiudi la spec"
-- Typos and garbled phrasings count ("close to spec", "close spec", "cierra spec")
-
-If it is genuinely ambiguous whether the human wants to close it, ask once — `Close specs/NN-slug.md? [y/N]` — and wait. The single confirmation in Step 3 is still required: a mistaken trigger costs one `no`, never an action.
-
-**Step 1 — State gate.** Read the spec's state line first, matching by meaning (same logic as Phase 2, any language):
-
-| State found                                                   | Action                                                                                                                          |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Already means "Implemented" (`Implementado`, `Implemented`, …) | Do not rewrite it. Note "already Implemented" and continue.                                                                     |
-| Means "Approved" (`Aprobado`, `Approved`, …)                   | Change it to the Implemented equivalent **using the file's own label and language** (`**Estado:** Implementado` / `**Status:** Implemented`) as part of the close commit. |
-| Anything else (Draft, In review, Obsolete, unrecognized)      | **Refuse to close.** Show the state found; only approved or already-implemented specs can be closed. Do not commit, merge, or delete. |
-
-**Step 2 — Resolve the close mode.** Read `CloseMode` from the Branch-creation config shown in the session context (the same `specs/.spec-config.yml` that carries `AutoCreateBranch`):
-
-- `local` → commit, merge into the default branch, delete the local branch. The personal-project flow.
-- `pr` (accept `mr`, `MR`, `PR`) → commit and stop: the branch stays alive for a pull/merge request; no merge, no deletion.
-- Missing or unrecognized → ask in the confirmation step: `Mode?  [l] local merge + delete   [p] keep branch for the MR`. Never assume a mode.
-
-**Step 3 — Classify the pending changes.** Run `git status --short` and split every pending file into two buckets:
-
-1. **Files you touched during this run** — from the running list you kept in Phase 4. These enter the proposed commit.
-2. **Files you did not touch** — a dependency the human added, a manual edit, an untracked file. These are **foreign changes**. Never include or revert one without explicit approval.
-
-If you have no reliable run list (context compaction, a different session), treat **every** pending file as foreign.
-
-**Step 4 — One confirmation, with everything visible.** Resolve foreign changes first, then present:
-
-```
-Close specs/NN-slug.md?
-
-State:   <current> → <new>            (or "already Implemented — no change")
-Mode:    local  — commit, merge into <default branch>, delete the branch
-         (or: pr — commit only, keep the branch for the MR)
-Branch:  <current branch> → <default branch>
-Commit:  feat(spec-NN-slug): <objective from the spec>
-
-⚠ Changes I did not make:
-  - <path>  <modified|untracked>  → include / diff / revert / leave out
-
-Then: <mode-dependent>
-  local:  merge into <default branch> (NO push), delete local branch <branch>.
-  pr:     stop after the commit — you push and open the MR.
-
-Proceed? [y/N]
-```
-
-Per foreign change, offer: `include` (enters the commit), `diff` (show `git diff <path>` and ask again), `revert` (`git checkout -- <path>`, tracked files only — **never delete an untracked file yourself**, tell the human to remove it), or `leave out` (stays uncommitted). Wait for `[y/N]` before touching git.
-
-**Step 5 — Commit.** Stage only the approved paths with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(spec-NN-slug): <objective>`), including the state change when it applies. If the tree is clean, skip the commit and say so.
-
-**Step 6 — Finish according to the mode.**
-
-- **`local`:** if the current branch **is** the default branch, there is nothing to merge — skip both merge and deletion. Otherwise `git checkout <default branch>` then `git merge <branch>` (fast-forward when possible). On any conflict: stop, report the conflicting files, leave the repository on the default branch, and never resolve the conflict or force anything by yourself. Then delete the local branch: `git branch -d <branch>` (safe delete; it refuses unmerged branches). If the branch is a ticket branch (`feat/…`, `fix/…` — anything that is not `spec-NN-slug`), ask before deleting it. If `-d` fails, report why and stop. **Never use `-D`.**
-- **`pr`:** do not merge, do not delete. Close with the exact next commands for the human:
-  ```
-  ✅ Committed on <branch>. Branch kept for the MR.
-
-  Next (yours — I never push):
-    git push -u origin <branch>
-    open the MR → <default branch>
-
-  When the MR is merged, say "cleanup the spec branch" (any language)
-  and I will: git checkout <default branch> → git pull → git branch -d <branch>.
-  ```
-
-**Step 7 — Close out.** State plainly which of the two happened: in `local` mode, the branch was merged locally and deleted and **nothing was pushed**; in `pr` mode, only the commit happened and the branch is waiting for the MR. In both modes, publishing is the human's (`git push`), and the spec is now marked Implemented when that change was applied.
-
-Hard rules for this phase: never `git push` or touch a remote (including remote branch deletion); never `-D`; never revert or delete a file the human did not explicitly approve; never edit the state line outside the gate in Step 1.
-
-### Phase 5b — Cleanup after the MR (on request only)
-
-Runs only when the human says the MR/PR is already merged ("ya se mergeó", "cleanup the spec branch", "elimina la rama de la spec" — any language), typically after a Phase 5 in `pr` mode.
-
-1. **Verify the merge landed in the default branch:** `git branch --merged <default>` lists the branch, or the branch's commits appear in `git log <default> --oneline`. If it is not merged, refuse: say so and stop. Never delete a branch whose work is not in the default branch yet.
-2. `git checkout <default branch>` then `git pull` (this brings the merged MR into the local default branch). If the pull fails or produces conflicts, stop and report.
-3. `git branch -d <branch>` — ask first if it is a ticket branch; never `-D`.
-4. The **remote** branch is not touched: remind the human to delete it from the MR interface or by hand. `git push origin --delete` is theirs to run, never yours.
-
-Hard rules for this phase: never `git push` (including `--delete`); never `-D`; never delete a branch that is not merged.
 
 ---
 
@@ -375,25 +283,25 @@ Hard rules for this phase: never `git push` (including `--delete`); never `-D`; 
               Shows the standard error message
               Does not create branch, does not touch code
 
-/spec-impl 03-levels-and-highscores  →  then the human says "cierra la spec"  (state: Aprobado, CloseMode: local)
+/spec-impl 03-levels-and-highscores  →  then /spec-close 03-levels-and-highscores  (state: Aprobado, CloseMode: local)
 
-  Phase 5  →  State gate: Aprobado → Implementado
-              Splits pending changes into mine vs not mine; foreign changes need approval
-              One confirmation → commit → merge into main (no push) → delete the local branch
+  /spec-close  →  State gate: Aprobado → Implementado
+                  Splits pending changes into mine vs not mine; foreign changes need approval
+                  One confirmation → commit → merge into main (no push) → delete the local branch
 
-/spec-impl 04-payments  →  "close the spec"  (CloseMode: pr)
+/spec-impl 04-payments  →  then /spec-close 04-payments  (CloseMode: pr)
 
-  Phase 5  →  State gate: Aprobado → Implementado, commit only → branch kept for the MR
-              Output: git push -u origin spec-04-payments + open the MR (human does both)
-              Later: "cleanup the spec branch" → git checkout main → git pull → git branch -d
+  /spec-close  →  State gate: Aprobado → Implementado, commit only → branch kept for the MR
+                  Output: git push -u origin spec-04-payments + open the MR (human does both)
+                  Later: /spec-close 04-payments again → git checkout main → git pull → git branch -d
 ```
 
 **Branch creation is controlled by the `AutoCreateBranch` flag** in `specs/.spec-config.yml`. It defaults to `true` (create the branch automatically when starting from the default branch). Set it to `false` to make Phase 3 ask `[y/N]` before creating the branch. The existing-work-branch rule (ticket flow) takes precedence over `AutoCreateBranch`: in that case no branch is created and no question is asked.
 
-**The close mode is controlled by the `CloseMode` flag** in the same file: `local` merges into the default branch and deletes it locally; `pr` commits and keeps the branch for a pull/merge request, with a later cleanup phase (`git pull` + safe delete) once the MR is merged. When the flag is missing, Phase 5 asks `[l]/[p]` in its confirmation — it never assumes, and it never pushes in either mode.
+**The close mode is controlled by the `CloseMode` flag** in the same file, read by `/spec-close`: `local` merges into the default branch and deletes it locally; `pr` commits and keeps the branch for a pull/merge request, with a later cleanup (`git pull` + safe delete) once the MR is merged. When the flag is missing, `/spec-close` asks `[l]/[p]` in its confirmation — it never assumes, and it never pushes in either mode.
 
 **Flat plans get grouped, not guessed:** if an approved spec has a flat checklist or an older numbered list, Phase 4 proposes a grouping, writes it into the spec after one confirmation, and then implements group by group. The grouping stays in the spec, so a resumed run knows exactly where it stopped.
 
 **`--one-shot`** is the only argument flag. It skips the between-group pauses (and the review they force) for specs small enough that a single review at the end is enough. It never skips the ambiguity and broken-step stops.
 
-**Closing is explicit, verified, and mode-aware.** Phase 5 only runs when the human asks for it by phrase (any language), after the implementation. It refuses specs that are not approved or already implemented, it asks before touching any change the agent did not make, and it follows `CloseMode`: `local` merges and deletes on your machine, `pr` commits and leaves the branch for the MR, with `Phase 5b` doing the `git pull` + safe delete once the MR is merged. It never pushes in any mode — publishing always stays in the human's hands — and the single automatic state edit in the whole workflow (`Aprobado` → `Implementado`) lives here, behind one confirmation.
+**Closing is a separate, explicit command.** `/spec-impl` never commits or merges by itself; the final summary hands off to `/spec-verify` and then `/spec-close NN-slug`. `/spec-close` refuses specs that are not approved or already implemented, asks before touching any change the agent did not make, and follows `CloseMode`: `local` merges and deletes on your machine, `pr` commits and leaves the branch for the MR, with a cleanup (`git pull` + safe delete) once the MR is merged. It never pushes in any mode — publishing always stays in the human's hands — and the single automatic state edit in the whole workflow (`Aprobado` → `Implementado`) lives there, behind one confirmation.

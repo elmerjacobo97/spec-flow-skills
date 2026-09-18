@@ -100,7 +100,7 @@ Critical: 0 · Warnings: 2 · Suggestions: 1
 
 Verdict:        safe to merge with warnings
 Mismatch:       none | spec is stale (fix with /spec-edit) | code drifted (fix the code)
-Next:           <concrete step, or "commit and mark Implementado manually">
+Next:           <concrete step — e.g. fix the findings, then /spec-close NN-slug
 ```
 
 The **mismatch direction** matters and must be explicit:
@@ -109,6 +109,8 @@ The **mismatch direction** matters and must be explicit:
 - **Spec is right, the code drifted** → the fix is code; the biggest gaps are already listed with locations.
 
 Never decide this silently in ambiguous cases — present what you found and let the human choose.
+
+**Closing is a separate step.** This skill never commits, merges, or marks the spec. When the audit passes, the close request is `/spec-close NN-slug`; when it finds gaps, point at `/spec-edit` (stale spec) or the code fix first, and close after that.
 
 ---
 
@@ -129,7 +131,7 @@ Never decide this silently in ambiguous cases — present what you found and let
   Phase 2  →  Indexes plan steps, criteria, decisions, data model
   Phase 3  →  Searches code for each claim; runs tests/build/lint if defined
   Phase 4  →  Reports completeness / correctness / coherence with severities
-  Phase 5  →  Verdict + mismatch direction + next step
+  Phase 5  →  Verdict + mismatch direction + next step (close with /spec-close when clean)
 
 /spec-verify 04-draft-feature   (state: Borrador, nothing checked)
 

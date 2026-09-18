@@ -29,7 +29,7 @@ Companion files (e.g., `template.md`) sit next to `SKILL.md` and are referenced 
 
 ## The spec workflow
 
-This repo encodes a skill chain: `/product-spec` (optional) → `/spec` → `/spec-impl`, plus `/spec-edit` to revise an existing spec in place at any point. Three auxiliary skills round it out: `/spec-explore` (optional pre-spec thinking pass, creates nothing), `/spec-status` (read-only board of `specs/`), and `/spec-verify` (read-only audit of spec ↔ code, re-runnable).
+This repo encodes a skill chain: `/product-spec` (optional) → `/spec` → `/spec-impl` → `/spec-close`, plus `/spec-edit` to revise an existing spec in place at any point. Three auxiliary skills round it out: `/spec-explore` (optional pre-spec thinking pass, creates nothing), `/spec-status` (read-only board of `specs/`), and `/spec-verify` (read-only audit of spec ↔ code, re-runnable).
 
 ### `/product-spec`
 
@@ -54,7 +54,7 @@ Output file format: `specs/NN-slug.md` with a header block:
 > **Objetivo:** One sentence.
 ```
 
-**Estado** after saving is always `Borrador`. State transitions are human-driven — Claude must never change `**Estado:**` automatically. The single exception is the close flow in `/spec-impl` Phase 5: it runs only on an explicit close request ("cierra la spec", "close the spec", any language) plus one confirmation preview, and it is the only place allowed to write `Implementado`.
+**Estado** after saving is always `Borrador`. State transitions are human-driven — Claude must never change `**Estado:**` automatically. The single exception is `/spec-close`: it runs only when invoked explicitly, shows a confirmation preview, and is the only skill allowed to write `Implementado`.
 
 Valid states: `Borrador` → `En revisión` → `Aprobado` → `Implementado` · `Obsoleto`
 
@@ -77,13 +77,25 @@ Accepts `<NN-slug>` as argument. Phases:
 2. Read `**Estado:**` — abort with a standard error message if it is not exactly `Aprobado`.
 3. Resolve the branch: if the current branch is neither the default branch nor `spec-NN-slug`, treat it as an existing work branch (the ticket flow created it) and stay on it. Otherwise apply the `AutoCreateBranch` logic.
 4. Implement the spec's plan group by group: tick each step off (`- [ ]` → `- [x]`) inside the spec file as it completes a group, then stop with a mini-summary so the human can review and commit before saying "continue". At the end it verifies the acceptance criteria with real evidence and ticks only the ones it proved. `--one-shot` runs every group without the between-group pauses. It stops early only on a real ambiguity or a step that breaks the project.
-5. On request only — the human asks to close the spec ("cierra la spec", "close the spec", any language) — run the close flow: state gate (`Aprobado` → `Implementado`; already `Implementado` → no change; anything else → refuse), split the pending changes into the agent's own vs foreign and ask before including any foreign one, commit `feat(spec-NN-slug): <objetivo>`, then follow `CloseMode` from `specs/.spec-config.yml`: `local` merges into the default branch and deletes the local branch; `pr` stops after the commit and keeps the branch for the MR (missing flag → asks). A later "cleanup the spec branch" request runs the post-merge phase: verify the merge landed in the default branch, `git pull`, safe-delete the local branch. It never pushes, in any mode.
+
+It never commits, merges, or closes the spec: the final summary hands off to `/spec-verify` and `/spec-close`.
 
 Branch creation in step 3 is gated by the `AutoCreateBranch` flag, read at skill-load time from `specs/.spec-config.yml` via a `!`cat`` snippet. Default (file or value absent) is `true` → branch is created automatically when starting from the default branch. An explicit `false` makes the skill ask `[y/N]` before creating the branch; on decline it implements on the current branch. The existing-work-branch rule takes precedence over the flag: in the ticket flow no branch is created and no question is asked. There is still no runtime config infra — the flag is just a value injected into the prompt and interpreted by the model.
 
-At completion it prints a chat summary (steps, files, why, verified/pending criteria) and suggests `/spec-verify` followed by the close phrase. On a close request in any language it handles the commit and then follows `CloseMode` — local merge + branch deletion, or commit only for the MR with a later pull + cleanup — and is the only skill allowed to write `Implementado`; it never pushes: publishing stays manual.
+At completion it prints a chat summary (steps, files, why, verified/pending criteria) and suggests `/spec-verify` followed by `/spec-close`.
 
 Changes to an approved spec go through `/spec-edit` and require the human to re-approve before the next `/spec-impl` run.
+
+### `/spec-close`
+
+Accepts `<NN-slug>` (same flexible matching as the other skills; with no argument it infers from the active `spec-NN-slug` branch or asks). Runs only when invoked explicitly — it is the only skill allowed to write `Implementado`. Flow:
+
+1. State gate: `Aprobado` → `Implementado` (file's own label and language); already `Implementado` → no change; anything else → refuse.
+2. Classify pending changes with `git status --short` into the agent's own vs foreign (manual edits, dependencies) — foreign ones are never included or reverted without explicit approval.
+3. One confirmation preview (state, mode, branch, commit message, foreign changes), then a selective commit `feat(spec-NN-slug): <objetivo>`.
+4. Follow `CloseMode` from `specs/.spec-config.yml`, read at skill-load time: `local` merges into the default branch and safe-deletes the local branch (`-d`, never `-D`); `pr` stops after the commit and keeps the branch for the MR; missing flag → asks `[l]/[p]`. On a later run after the MR merged, it verifies the merge landed in the default branch, `git pull`, and deletes the local branch.
+
+It never pushes — publishing stays manual — and `git push` is deliberately absent from its `allowed-tools`.
 
 ### Auxiliary skills
 
@@ -91,7 +103,7 @@ Changes to an approved spec go through `/spec-edit` and require the human to re-
 
 `/spec-status` — read-only board of `specs/`: state, dependencies, plan/criteria progress per spec, flags for stale or blocked specs, and one suggested next action each. It never executes actions.
 
-`/spec-verify <NN-slug>` — read-only audit of an implementation against its spec, re-runnable at any time (before merging, after refactors, or later for drift). Reports completeness/correctness/coherence with CRITICAL/WARNING/SUGGESTION severities and a mismatch-direction verdict: spec stale → `/spec-edit`; code drifted → fix the code. Never edits code, checkboxes, or `Estado`.
+`/spec-verify <NN-slug>` — read-only audit of an implementation against its spec, re-runnable at any time (before merging, after refactors, or later for drift). Reports completeness/correctness/coherence with CRITICAL/WARNING/SUGGESTION severities and a mismatch-direction verdict: spec stale → `/spec-edit`; code drifted → fix the code. Never edits code, checkboxes, or `Estado`. When the audit is clean, the next step is `/spec-close`.
 
 ### Tickets bridge (optional)
 

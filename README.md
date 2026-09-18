@@ -9,7 +9,7 @@
   <img alt="License" src="https://img.shields.io/github/license/elmerjacobo97/spec-flow-skills">
   <img alt="Latest Release" src="https://img.shields.io/github/v/release/elmerjacobo97/spec-flow-skills">
   <img alt="GitHub Stars" src="https://img.shields.io/github/stars/elmerjacobo97/spec-flow-skills?style=social">
-  <img alt="Skills" src="https://img.shields.io/badge/skills-7-blue">
+  <img alt="Skills" src="https://img.shields.io/badge/skills-8-blue">
 </p>
 
 ## Quick start
@@ -26,7 +26,8 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 | `/product-spec` | Defines the business case before the technical spec: evidence, metric, 20% version, kill criterion | `[short topic]` |
 | `/spec` | Designs the feature document by asking clarifying questions | — |
 | `/spec-edit` | Edits an existing spec in place: impact analysis, one preview confirmation, minimal diff | `<NN-slug> [change]` |
-| `/spec-impl` | Validates the spec is approved and implements it group by group, pausing for review and commit after each group. Closes on request ("cierra la spec" / "close the spec", any language): local merge or MR mode per `CloseMode` | `<NN-slug> [--one-shot]` |
+| `/spec-impl` | Validates the spec is approved and implements it group by group, pausing for review and commit after each group | `<NN-slug> [--one-shot]` |
+| `/spec-close` | Closes an implemented spec: state gate to `Implementado`, selective commit, then `CloseMode` (local merge or MR flow). Never pushes | `<NN-slug>` |
 | `/spec-status` | Read-only board of all specs: state, progress, dependencies, next action | — |
 | `/spec-verify` | Audits spec ↔ code: completeness, correctness, coherence; reports, never fixes | `<NN-slug>` |
 
@@ -333,11 +334,13 @@ Optionally, add a `specs/README.md` documenting the convention (see the example 
 # 4. (Optional) Audit that the code matches the spec
 /spec-verify 03-levels-and-highscores
 
-# 5. Close it — ask in any language ("cierra la spec", "close the spec"):
-# marks the spec Implementado, commits what is pending (asking first about
+# 5. Close it
+/spec-close 03-levels-and-highscores
+
+# Marks the spec Implementado, commits what is pending (asking first about
 # changes it did not make). CloseMode controls the rest: local → merge into
 # main (no push) + delete the branch; pr → keep the branch for the MR, then
-# say "cleanup the spec branch" after it is merged.
+# run /spec-close again after it is merged.
 
 # Anytime: /spec-status shows every spec — state, progress, dependencies.
 ```
@@ -387,23 +390,14 @@ Revises an existing spec in place — no regeneration, no new file. Goes through
 
 #### `/spec-impl <NN-name>`
 
-Implements an approved spec. Goes through five phases:
+Implements an approved spec. Goes through four phases:
 
 1. **Identify** — locates the spec file.
 2. **Validate** — verifies the status is `Approved`. If not, it stops.
 3. **Resolve branch** — reuses the active ticket work branch (`feat/...`, `fix/...`) when one is present; otherwise creates and switches to `spec-NN-slug`.
 4. **Implement** — group by group. Ticks each step `- [x]` inside the spec as it completes a group, then stops with a mini-summary so you can review and commit. Say "continue" for the next group. Verifies the acceptance criteria with real evidence at the end and closes with a summary. It only stops mid-group on an ambiguity or a step that breaks the project.
-5. **Close (on request)** — when you ask to close the spec ("cierra la spec", "close the spec", any language), it gates on the state (`Aprobado` → `Implementado`, already `Implementado` → no change, anything else refused), separates the changes it made from the ones you made by hand, asks per foreign file whether to include / review / revert / leave it out, commits `feat(spec-NN-slug): <objective>`, and then follows `CloseMode`:
-   - **`local`** — merges the work branch into the default branch and deletes the local branch. Nothing is pushed.
-   - **`pr`** — commits and stops; the branch stays alive for the MR. You push and open it, and when it is merged you say "cleanup the spec branch" for Phase 5b: it verifies the merge landed in the default branch, runs `git pull`, and safe-deletes the local branch (`git branch -d`, never `-D`). The remote branch is yours to delete.
 
-> **Close control:** `CloseMode` lives in `specs/.spec-config.yml`. When the flag is absent, Phase 5 asks `[l] local merge + delete / [p] keep branch for the MR` in its confirmation — it never assumes. In both modes `git push` stays with you.
->
-> ```yaml
-> # specs/.spec-config.yml
-> AutoCreateBranch: true
-> CloseMode: pr
-> ```
+It never commits, merges, or closes the spec: the final summary hands off to `/spec-verify` and `/spec-close`.
 
 > **Groups live in the spec:** the implementation plan is a grouped checkbox list (`### Group N — …` + `- [ ] N.M`). If an older spec is flat, `/spec-impl` proposes a grouping, writes it into the spec after your confirmation, and then implements group by group. An interrupted run resumes from the first unchecked box, and at the end only the criteria it can prove with evidence are marked — the rest wait for you.
 
@@ -414,6 +408,26 @@ Implements an approved spec. Goes through five phases:
 > ```yaml
 > # specs/.spec-config.yml
 > AutoCreateBranch: false
+> ```
+
+#### `/spec-close <NN-name>`
+
+Closes an implemented spec. Runs only when invoked explicitly — it is the only skill allowed to write `Implementado`:
+
+1. **Identify** — locates the spec (same flexible matching as the other skills; without an argument it infers from the active `spec-NN-slug` branch or asks).
+2. **State gate** — `Aprobado` → `Implementado` (in the file's own label and language); already `Implementado` → no change; anything else → refuses.
+3. **Separate changes** — splits `git status --short` into the agent's own changes and foreign ones (a dependency you added, a manual edit). Foreign files are never included or reverted without your explicit choice per file: include / review the diff / revert (tracked only) / leave out.
+4. **One confirmation** with the full preview, then a selective commit `feat(spec-NN-slug): <objective>` — never `git add -A`.
+5. **Follow `CloseMode`** from `specs/.spec-config.yml`:
+   - **`local`** — merges the work branch into the default branch and deletes the local branch. Nothing is pushed.
+   - **`pr`** — commits and stops; the branch stays alive for the MR. You push and open it, and when it is merged you run `/spec-close` again: it verifies the merge landed in the default branch, runs `git pull`, and safe-deletes the local branch (`git branch -d`, never `-D`). The remote branch is yours to delete.
+
+> **Close control:** `CloseMode` lives in `specs/.spec-config.yml`. When the flag is absent, `/spec-close` asks `[l] local merge + delete / [p] keep branch for the MR` in its confirmation — it never assumes. In both modes `git push` stays with you.
+>
+> ```yaml
+> # specs/.spec-config.yml
+> AutoCreateBranch: true
+> CloseMode: pr
 > ```
 
 #### `/spec-status`
@@ -432,7 +446,7 @@ Independent audit of an implementation against its spec — re-runnable at any t
 1. **Index** — plan steps, criteria, decisions, and the data model.
 2. **Evidence** — searches the code for each claim (a checkbox is a claim, not evidence) and runs tests/build/lint when the project defines them.
 3. **Report** — completeness, correctness, coherence; each finding tagged CRITICAL / WARNING / SUGGESTION with a `file:line`.
-4. **Verdict** — plus the mismatch direction: spec stale → `/spec-edit`; code drifted → fix the code. It is read-only: it never fixes anything itself.
+4. **Verdict** — plus the mismatch direction: spec stale → `/spec-edit`; code drifted → fix the code. It is read-only: it never fixes anything itself. When the audit is clean, the next step is `/spec-close NN-slug`.
 
 ### Spec states
 
@@ -441,12 +455,12 @@ Independent audit of an implementation against its spec — re-runnable at any t
 | `Draft`       | The `/spec` skill generated it but the human hasn't re-read it.            |
 | `In review`   | The human is reviewing or iterating with Claude.                           |
 | `Approved`    | The human read and authorized it. `/spec-impl` only works with this state. |
-| `Implemented` | The code exists and passes the acceptance criteria. The close flow in `/spec-impl` writes it when you say "cierra la spec". |
+| `Implemented` | The code exists and passes the acceptance criteria. `/spec-close` writes it when you close the spec. |
 | `Obsolete`    | Replaced by another spec. Not deleted — referenced.                        |
 
 **Changing the status to `Approved` is a deliberate human act.** It's the only signature on the contract — Claude can't approve its own work.
 
-> The only state write the agent can make is `Aprobado` → `Implementado`, inside the close flow — and only because you asked for it and confirmed the preview.
+> The only state write the agent can make is `Aprobado` → `Implementado`, inside `/spec-close` — and only because you invoked it and confirmed the preview.
 
 > Status labels are language-agnostic. `/spec-impl` only requires the status to mean **Approved** — `Approved`, `Aprobado`, or the equivalent in any language all work. Same goes for the other states. Pick the labels your team prefers and stay consistent.
 
