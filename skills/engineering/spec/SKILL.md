@@ -22,11 +22,13 @@ Read `template.md` (in the same directory as this skill) to see the full structu
 
 ## Question protocol
 
-When this skill asks the user to choose between concrete answers, use the agent's interactive question tool so the user **selects instead of typing**:
+When this skill needs a **decision** from the user — choosing between concrete options — use the agent's interactive question tool so the user **selects instead of typing**:
 
 - Claude Code: `AskUserQuestion`.
 - opencode: `question`.
 - Other agents: their structured-question / elicitation tool, if one exists.
+
+**Scope: decisions only.** Use the tool in Phase 2 (clarification blocks) and whenever genuine options must be chosen. **Never use it to confirm drafted text**: Phase 3 section approvals and the Phase 4 file-name confirmation are plain chat questions. The tool is for deciding, not for approving what was already written.
 
 Rules:
 
@@ -98,9 +100,9 @@ Strict order:
 **After each section:**
 
 - Show it formatted in markdown.
-- Ask, with the Question protocol, whether the section stays or needs tweaks (2 options, "stays" recommended, in the user's language).
+- Ask in plain chat — no selection tool — one short line in the user's language: `¿Queda así o ajusto algo?`
 - If the user requests changes, apply them and show again.
-- Only move to the next section once the user confirms.
+- Only move to the next section once the user confirms. A short "sí" / "dale" / "ok" counts; silence does not.
 
 **Common mistakes to avoid:**
 
@@ -115,7 +117,7 @@ When all sections are confirmed:
 
 1. Determine the file's `NN-slug`. If a matching `specs/NN-slug.brief.md` was found in Phase 1, reuse its exact `NN-slug` — the technical spec and the brief share the same number, they are not two entries in the sequence. Otherwise, determine the next sequential number by looking at `specs/`: if the last one is `02-powerups.md`, this one will be `03-`.
 2. Generate a short slug from the objective (e.g. `levels-and-highscores`), unless step 1 already fixed it from an existing brief.
-3. Ask, with the Question protocol, whether the proposed file name works (options: the proposed name, "type another"). Do not write the file before this confirmation.
+3. Ask in plain chat — no selection tool — whether the proposed file name works (e.g. `¿Te sirve specs/03-slug.md?`). Do not write the file before this confirmation.
 4. Create the file at `specs/NN-slug.md` with all approved sections.
 5. Mark the state as `Draft` by default. **Do not mark it as `Approved` automatically** — the user does that once they have re-read it.
 6. **Seed the config file if it does not exist.** Check for `specs/.spec-config.yml`. If it is **missing**, create it with the default content below. If it **already exists, leave it untouched** — never overwrite the user's settings.
@@ -149,7 +151,7 @@ When all sections are confirmed:
 
 ## Tone when asking questions
 
-Be direct and specific. Do not apologize for asking. Do not use phrases like "if you don't mind..." or "could you maybe...". The user invoked this skill precisely because they want you to ask questions. Ask concrete questions through the Question protocol; when you fall back to chat, put one question per line and number them so they are easy to answer.
+Be direct and specific. Do not apologize for asking. Do not use phrases like "if you don't mind..." or "could you maybe...". The user invoked this skill precisely because they want you to ask questions. Use the Question protocol when a decision needs concrete options; for everything else — including section approvals — ask in plain chat, one question per line.
 
 Example of a well-formed block (fallback format):
 
