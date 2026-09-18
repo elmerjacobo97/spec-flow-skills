@@ -223,7 +223,7 @@ Wait for explicit confirmation ("yes", "go ahead", "go", or equivalent). Then, f
 2. **A step fails** or leaves the project broken (tests, build, or the step's own check fail): stop, report what failed, and do **not** mark that step `- [x]`.
 3. **The user asks for something out of scope:** remind them it is out of this spec's scope, suggest noting it for the next spec, do not implement it on this branch.
 
-**Keep a running list of your own changes.** From the first group on, accumulate every file you create or modify during this run (each group summary already prints a `Files:` line). The `/spec-close` skill uses that list to tell your changes apart from the human's: any pending change not on the list is a foreign change and requires explicit approval before it can enter the close commit — except the spec's own files (`specs/NN-slug.md` and its brief), which `/spec-close` always includes.
+**Keep a running list of your own changes.** From the first group on, accumulate every file you create or modify during this run (each group summary already prints a `Files:` line). The `/spec-close` skill uses that list to tell your changes apart from the human's: the spec's own files (`specs/NN-slug.md` and its brief) and any pending change attributable to this spec's plan go into the close commit; anything unattributable stays out by default.
 
 **When the last group is done — verify the acceptance criteria:**
 
@@ -286,8 +286,8 @@ Next:       optionally run /spec-verify for an independent audit. When it
 /spec-impl 03-levels-and-highscores  →  then /spec-close 03-levels-and-highscores  (state: Aprobado, CloseMode: local)
 
   /spec-close  →  State gate: Aprobado → Implementado
-                  Splits pending changes into mine vs not mine; foreign changes need approval
-                  One confirmation → commit → merge into main (no push) → delete the local branch
+                  Spec files + attributable code go into the commit; unattributable stays out
+                  One compact block + one question (A/B/C) → commit → merge into main (no push) → delete the local branch
 
 /spec-impl 04-payments  →  then /spec-close 04-payments  (CloseMode: pr)
 
@@ -298,7 +298,7 @@ Next:       optionally run /spec-verify for an independent audit. When it
 
 **Branch creation is controlled by the `AutoCreateBranch` flag** in `specs/.spec-config.yml`. It defaults to `true` (create the branch automatically when starting from the default branch). Set it to `false` to make Phase 3 ask `[y/N]` before creating the branch. The existing-work-branch rule (ticket flow) takes precedence over `AutoCreateBranch`: in that case no branch is created and no question is asked.
 
-**The close mode is controlled by the `CloseMode` flag** in the same file, read by `/spec-close`: `local` merges into the default branch and deletes it locally; `pr` commits and keeps the branch for a pull/merge request, with a later cleanup (`git pull` + safe delete) once the MR is merged. When the flag is missing, `/spec-close` asks `[l]/[p]` in its confirmation — it never assumes, and it never pushes in either mode.
+**The close mode is controlled by the `CloseMode` flag** in the same file, read by `/spec-close`: `local` merges into the default branch and deletes it locally; `pr` commits and keeps the branch for a pull/merge request, with a later cleanup (`git pull` + safe delete) once the MR is merged. When the flag is missing, `/spec-close` asks it as the single question of its close block — `A) local`, `B) pr`, `C) cancel` — it never assumes, and it never pushes in either mode.
 
 **Flat plans get grouped, not guessed:** if an approved spec has a flat checklist or an older numbered list, Phase 4 proposes a grouping, writes it into the spec after one confirmation, and then implements group by group. The grouping stays in the spec, so a resumed run knows exactly where it stopped.
 

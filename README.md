@@ -417,14 +417,14 @@ Closes an implemented spec. Runs only when invoked explicitly — it is the only
 
 1. **Identify** — locates the spec (same flexible matching as the other skills; without an argument it infers from the active `spec-NN-slug` branch or asks).
 2. **State gate** — `Aprobado` → `Implementado` (in the file's own label and language); already `Implementado` → no change; anything else → refuses.
-3. **Separate changes** — splits `git status --short` into the agent's own changes, the files of the spec being closed (`specs/NN-slug.md` and its `NN-slug.brief.md`, always included), and foreign ones (a dependency you added, a manual edit). Foreign files are never included or reverted without your explicit choice per file: include / review the diff / revert (tracked only) / leave out.
+3. **Attribute changes** — reads `git status --short` and the diff: the spec being closed (`specs/NN-slug.md` + `NN-slug.brief.md`) and the code attributable to its plan always go into the commit; anything unattributable (a dependency you added, a manual edit) stays out by default and is listed on a `No incluidos:` line.
 4. **Sync project memory** — checks the first of `CLAUDE.md` → `AGENTS.md` → `GEMINI.md` → `README.md` and proposes minimal `old → new` edits for facts this spec introduced (new dependencies, modules, commands), or says explicitly that no update is needed. Never a rewrite, never a changelog.
-5. **One confirmation** with the full preview (including the memory edits), then a selective commit `feat(spec-NN-slug): <objective>` — never `git add -A`.
+5. **One compact block, one question** — shows branch, commit message, file count, and memory edits, then asks the mode with lettered options: `A) local` / `B) pr` / `C) cancel`. The answer is the approval; then a selective commit `feat(spec-NN-slug): <objective>` — never `git add -A`.
 6. **Follow `CloseMode`** from `specs/.spec-config.yml`:
    - **`local`** — merges the work branch into the default branch and deletes the local branch. Nothing is pushed.
    - **`pr`** — commits and stops; the branch stays alive for the MR. You push and open it, and when it is merged you run `/spec-close` again: it verifies the merge landed in the default branch, runs `git pull`, and safe-deletes the local branch (`git branch -d`, never `-D`). The remote branch is yours to delete.
 
-> **Close control:** `CloseMode` lives in `specs/.spec-config.yml`. When the flag is absent, `/spec-close` asks `[l] local merge + delete / [p] keep branch for the MR` in its confirmation — it never assumes. In both modes `git push` stays with you.
+> **Close control:** `CloseMode` lives in `specs/.spec-config.yml`. When the flag is absent, `/spec-close` asks `A) local / B) pr / C) cancel` as its single question — it never assumes. With the flag set, the configured mode appears as the recommended option `A)`. In both modes `git push` stays with you.
 >
 > ```yaml
 > # specs/.spec-config.yml

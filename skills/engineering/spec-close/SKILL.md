@@ -1,6 +1,6 @@
 ---
 name: spec-close
-description: Closes an approved or already-implemented spec — state gate to Implementado, a minimal sync of the project memory (CLAUDE.md/AGENTS.md) when the change added dependencies, modules, or commands, commit of the pending changes (asking first about changes the agent did not make), then CloseMode follows — local merge plus branch deletion, or commit only for the MR with a later post-merge cleanup. It never pushes.
+description: Closes an approved or already-implemented spec — state gate to Implementado, a minimal sync of the project memory (CLAUDE.md/AGENTS.md) when the change added dependencies, modules, or commands, a commit of the pending changes attributable to the spec, then CloseMode follows — local merge plus branch deletion, or commit only for the MR with a later post-merge cleanup. It never pushes.
 disable-model-invocation: true
 argument-hint: <NN-spec-name>
 allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git symbolic-ref:*), Bash(git add:*), Bash(git commit:*), Bash(git merge:*), Bash(git pull:*), Bash(git log:*), Bash(git diff:*), Bash(cat:*), Bash(ls:*)
@@ -55,17 +55,18 @@ Read `CloseMode` from the config shown in the session context:
 
 - `local` → commit, merge into the default branch, delete the local branch. The personal-project flow.
 - `pr` (accept `mr`, `MR`, `PR`) → commit and stop: the branch stays alive for a pull/merge request; no merge, no deletion.
-- Missing or unrecognized → ask in the confirmation step: `Mode?  [l] local merge + delete   [p] keep branch for the MR`. Never assume a mode.
+- Missing or unrecognized → the mode is a **decision**, not a confirmation: ask it as the single question of Phase 6, with the interactive question tool when available. Never assume a mode.
 
 ### Phase 4 — Classify the pending changes
 
-Run `git status --short` and split every pending file into three buckets:
+Run `git status --short`, then read the diff of every pending file and sort them:
 
-1. **Files the agent touched in this conversation** — if the implementation or the fixes happened here, its running `Files:` list. These enter the proposed commit.
+1. **Files the agent touched in this conversation** — the implementation or fixes that happened here. They enter the commit.
 2. **Files of the spec being closed** — `specs/NN-slug.md` (the file read in Phase 2) and its companion `specs/NN-slug.brief.md` when it exists. They always enter the commit without asking: the spec file carries the state change from Phase 2 and the brief shares its number. Files of another spec do not fall in this bucket.
-3. **Files it did not touch** — a dependency the human added, a manual edit, any other untracked file. These are **foreign changes**. Never include or revert one without explicit approval.
+3. **Attributable changes** — pending files whose path or diff matches this spec's plan, its decisions, or their fallout (migration churn included). They enter the commit; report only their count, never a per-file question.
+4. **Unattributable changes** — a dependency the human added, a manual edit, anything the diff does not connect to this spec. They stay **out of the commit** by default and appear under `No incluidos:` in the confirmation. Never revert or delete one.
 
-If you have no reliable run list (a different session, context compaction, manual work), treat every pending file as foreign — except the spec files of bucket 2. When in doubt, ask.
+If you have no reliable run list (a different session, context compaction, manual work), bucket 1 is empty: attribute each pending file by reviewing its diff against the spec. A file whose diff does not clearly match is unattributable — never guess it in. If the human wants to approve file by file, they will say so; only then ask per file.
 
 ### Phase 5 — Sync project memory
 
@@ -79,40 +80,34 @@ The close is the last moment the implementation facts are fresh. Check whether t
 4. **Section placement:** use an existing section that fits. If no section fits, ask before creating one; never invent structure without approval.
 5. Approved memory edits become part of the close commit (Phase 7), staged with the other approved paths.
 
-### Phase 6 — One confirmation, with everything visible
+### Phase 6 — One confirmation, one question
 
-Resolve foreign changes and memory edits first, then present:
+No phase narration, no progress prelude: the first visible output is the block below, written in the user's language and kept this compact. Resolve the memory edits first, then present:
 
 ```
-Close specs/NN-slug.md?
+Close specs/NN-slug.md — <current state> → <new state>
 
-State:   <current> → <new>            (or "already Implemented — no change")
-Mode:    local  — commit, merge into <default branch>, delete the branch
-         (or: pr — commit only, keep the branch for the MR)
 Branch:  <current branch> → <default branch>
 Commit:  feat(spec-NN-slug): <objective from the spec>
-Spec:    specs/NN-slug.md (+ brief when it exists) — auto-included, no question
-
-Memory:  <CLAUDE.md — N edits proposed, listed below>
-         (or: no update needed / no memory file found — skipped)
-  + Dependencies: add `zustand`
-  ~ Structure: features/payments/ now owns the checkout flow
-
-⚠ Changes I did not make:
-  - <path>  <modified|untracked>  → include / diff / revert / leave out
-
-Then: <mode-dependent>
-  local:  merge into <default branch> (NO push), delete local branch <branch>.
-  pr:     stop after the commit — you push and open the MR.
-
-Proceed? [y/N]
+Files:   <N> pending — spec + code attributable to this spec
+Memory:  <CLAUDE.md — N edits>   (or: no changes / no memory file found)
+  ~ <edit 1, one line>
+  ~ <edit 2>
+Not included: <path, path>       (or: none)
 ```
 
-Per foreign change, offer: `include` (enters the commit), `diff` (show `git diff <path>` and ask again), `revert` (`git checkout -- <path>`, tracked files only — **never delete an untracked file yourself**, tell the human to remove it), or `leave out` (stays uncommitted). Wait for `[y/N]` before touching git.
+Then the single question. Use the interactive question tool when available — Claude Code `AskUserQuestion`, opencode `question` — so the human selects instead of typing; the plain-chat fallback keeps the same A/B/C letters.
+
+- `CloseMode` missing or unrecognized: `A) local — commit, merge into <default branch>, delete the branch (no push)`, `B) pr — commit only, keep the branch for the MR`, `C) cancel`.
+- `CloseMode` set: `A)` the configured mode, labeled `(Recommended)`, `B)` the other mode, `C) cancel`.
+
+The answer is the approval: A or B runs Phases 7–8; C or anything else stops. No `[y/N]`, no `y l` combinations, no second confirmation.
+
+Unattributable files stay out and are listed on the `No incluidos:` line; the human can ask for `diff <path>` or to include one in chat before answering.
 
 ### Phase 7 — Commit
 
-Stage the approved paths — including the spec files auto-included in Phase 4 — with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(spec-NN-slug): <objective>`), including the state change and the approved memory edits when they apply. If the tree is clean, skip the commit and say so.
+Stage the paths selected in Phase 4 (buckets 1–3) plus the approved memory edits with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(spec-NN-slug): <objective>`), including the state change when it applies. If the tree is clean, skip the commit and say so.
 
 ### Phase 8 — Finish according to the mode
 
@@ -146,7 +141,9 @@ If the spec is already implemented and its branch still exists after the MR was 
 
 - **Never `git push` or touch a remote** — including remote branch deletion. Publishing always stays with the human.
 - **Never `-D`.** Safe delete only; if it refuses, report why.
-- **Never revert or delete a file the human did not explicitly approve.**
+- **Never revert or delete a file.** Unattributable changes stay out of the commit by default; nothing is ever reverted or removed.
+- **No phase narration.** Never open with "Phase 1–5 done", "spec found", "gate passed", or a checklist of what was just reviewed. The first visible output is the Phase 6 block.
+- **The mode question is the only question.** A/B/C is the whole approval; unattributable files stay out unless the human asks otherwise in chat.
 - **Memory edits are minimal and factual.** Only facts this spec introduced, in the file's existing language and format; never a rewrite, never a changelog, never a new section without approval.
 - **Never edit the state line outside the gate in Phase 2.**
 - **Checkboxes are claims; this skill does not re-audit.** If the human wants verification first, that is `/spec-verify`.
@@ -160,11 +157,15 @@ If the spec is already implemented and its branch still exists after the MR was 
   Phase 1  →  Finds specs/03-levels-and-highscores.md
   Phase 2  →  State gate: Aprobado → Implementado
   Phase 3  →  CloseMode: local
-  Phase 4  →  Splits pending changes into mine vs foreign — the spec's own files (NN-slug.md + brief) auto-include; foreign ones need approval
+  Phase 4  →  Attributes every pending change: spec files + attributable code go in; unattributable stays out
   Phase 5  →  Memory sync: checks CLAUDE.md/AGENTS.md → no update needed, or minimal old → new edits
-  Phase 6  →  One confirmation with the full preview
+  Phase 6  →  One compact block + one question: A) local  B) pr  C) cancel
   Phase 7  →  Commit feat(spec-03-levels-and-highscores): <objective>
   Phase 8  →  Merge into main (no push), delete local branch spec-03-levels-and-highscores
+
+/spec-close 06-new-thing   (state: Aprobado, CloseMode: missing)
+
+  Phase 6  →  Same block, then A) local  B) pr  C) cancel — no mode assumed
 
 /spec-close 04-payments   (state: Aprobado, CloseMode: pr)
 
