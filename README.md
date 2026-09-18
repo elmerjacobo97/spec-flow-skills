@@ -417,7 +417,7 @@ Closes an implemented spec. Runs only when invoked explicitly — it is the only
 
 1. **Identify** — locates the spec (same flexible matching as the other skills; without an argument it infers from the active `spec-NN-slug` branch or asks).
 2. **State gate** — `Aprobado` → `Implementado` (in the file's own label and language); already `Implementado` → no change; anything else → refuses.
-3. **Separate changes** — splits `git status --short` into the agent's own changes and foreign ones (a dependency you added, a manual edit). Foreign files are never included or reverted without your explicit choice per file: include / review the diff / revert (tracked only) / leave out.
+3. **Separate changes** — splits `git status --short` into the agent's own changes, the files of the spec being closed (`specs/NN-slug.md` and its `NN-slug.brief.md`, always included), and foreign ones (a dependency you added, a manual edit). Foreign files are never included or reverted without your explicit choice per file: include / review the diff / revert (tracked only) / leave out.
 4. **Sync project memory** — checks the first of `CLAUDE.md` → `AGENTS.md` → `GEMINI.md` → `README.md` and proposes minimal `old → new` edits for facts this spec introduced (new dependencies, modules, commands), or says explicitly that no update is needed. Never a rewrite, never a changelog.
 5. **One confirmation** with the full preview (including the memory edits), then a selective commit `feat(spec-NN-slug): <objective>` — never `git add -A`.
 6. **Follow `CloseMode`** from `specs/.spec-config.yml`:

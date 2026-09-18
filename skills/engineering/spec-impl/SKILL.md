@@ -223,7 +223,7 @@ Wait for explicit confirmation ("yes", "go ahead", "go", or equivalent). Then, f
 2. **A step fails** or leaves the project broken (tests, build, or the step's own check fail): stop, report what failed, and do **not** mark that step `- [x]`.
 3. **The user asks for something out of scope:** remind them it is out of this spec's scope, suggest noting it for the next spec, do not implement it on this branch.
 
-**Keep a running list of your own changes.** From the first group on, accumulate every file you create or modify during this run (each group summary already prints a `Files:` line). The `/spec-close` skill uses that list to tell your changes apart from the human's: any pending change not on the list is a foreign change and requires explicit approval before it can enter the close commit.
+**Keep a running list of your own changes.** From the first group on, accumulate every file you create or modify during this run (each group summary already prints a `Files:` line). The `/spec-close` skill uses that list to tell your changes apart from the human's: any pending change not on the list is a foreign change and requires explicit approval before it can enter the close commit — except the spec's own files (`specs/NN-slug.md` and its brief), which `/spec-close` always includes.
 
 **When the last group is done — verify the acceptance criteria:**
 

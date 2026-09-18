@@ -59,12 +59,13 @@ Read `CloseMode` from the config shown in the session context:
 
 ### Phase 4 — Classify the pending changes
 
-Run `git status --short` and split every pending file into two buckets:
+Run `git status --short` and split every pending file into three buckets:
 
 1. **Files the agent touched in this conversation** — if the implementation or the fixes happened here, its running `Files:` list. These enter the proposed commit.
-2. **Files it did not touch** — a dependency the human added, a manual edit, an untracked file. These are **foreign changes**. Never include or revert one without explicit approval.
+2. **Files of the spec being closed** — `specs/NN-slug.md` (the file read in Phase 2) and its companion `specs/NN-slug.brief.md` when it exists. They always enter the commit without asking: the spec file carries the state change from Phase 2 and the brief shares its number. Files of another spec do not fall in this bucket.
+3. **Files it did not touch** — a dependency the human added, a manual edit, any other untracked file. These are **foreign changes**. Never include or revert one without explicit approval.
 
-If you have no reliable run list (a different session, context compaction, manual work), treat **every** pending file as foreign. When in doubt, ask.
+If you have no reliable run list (a different session, context compaction, manual work), treat every pending file as foreign — except the spec files of bucket 2. When in doubt, ask.
 
 ### Phase 5 — Sync project memory
 
@@ -90,6 +91,7 @@ Mode:    local  — commit, merge into <default branch>, delete the branch
          (or: pr — commit only, keep the branch for the MR)
 Branch:  <current branch> → <default branch>
 Commit:  feat(spec-NN-slug): <objective from the spec>
+Spec:    specs/NN-slug.md (+ brief when it exists) — auto-included, no question
 
 Memory:  <CLAUDE.md — N edits proposed, listed below>
          (or: no update needed / no memory file found — skipped)
@@ -110,7 +112,7 @@ Per foreign change, offer: `include` (enters the commit), `diff` (show `git diff
 
 ### Phase 7 — Commit
 
-Stage only the approved paths with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(spec-NN-slug): <objective>`), including the state change and the approved memory edits when they apply. If the tree is clean, skip the commit and say so.
+Stage the approved paths — including the spec files auto-included in Phase 4 — with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(spec-NN-slug): <objective>`), including the state change and the approved memory edits when they apply. If the tree is clean, skip the commit and say so.
 
 ### Phase 8 — Finish according to the mode
 
@@ -158,7 +160,7 @@ If the spec is already implemented and its branch still exists after the MR was 
   Phase 1  →  Finds specs/03-levels-and-highscores.md
   Phase 2  →  State gate: Aprobado → Implementado
   Phase 3  →  CloseMode: local
-  Phase 4  →  Splits pending changes into mine vs foreign; foreign ones need approval
+  Phase 4  →  Splits pending changes into mine vs foreign — the spec's own files (NN-slug.md + brief) auto-include; foreign ones need approval
   Phase 5  →  Memory sync: checks CLAUDE.md/AGENTS.md → no update needed, or minimal old → new edits
   Phase 6  →  One confirmation with the full preview
   Phase 7  →  Commit feat(spec-03-levels-and-highscores): <objective>
