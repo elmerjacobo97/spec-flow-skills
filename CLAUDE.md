@@ -92,8 +92,9 @@ Accepts `<NN-slug>` (same flexible matching as the other skills; with no argumen
 
 1. State gate: `Aprobado` → `Implementado` (file's own label and language); already `Implementado` → no change; anything else → refuse.
 2. Classify pending changes with `git status --short` into the agent's own vs foreign (manual edits, dependencies) — foreign ones are never included or reverted without explicit approval.
-3. One confirmation preview (state, mode, branch, commit message, foreign changes), then a selective commit `feat(spec-NN-slug): <objetivo>`.
-4. Follow `CloseMode` from `specs/.spec-config.yml`, read at skill-load time: `local` merges into the default branch and safe-deletes the local branch (`-d`, never `-D`); `pr` stops after the commit and keeps the branch for the MR; missing flag → asks `[l]/[p]`. On a later run after the MR merged, it verifies the merge landed in the default branch, `git pull`, and deletes the local branch.
+3. Sync project memory: first hit of `CLAUDE.md` → `AGENTS.md` → `GEMINI.md` → `README.md`. Minimal `old → new` edits for facts this spec introduced (new dependencies, modules, commands); explicit no-op when there is nothing relevant; never a rewrite, never a changelog, no new sections without approval.
+4. One confirmation preview (state, mode, branch, commit message, memory edits, foreign changes), then a selective commit `feat(spec-NN-slug): <objetivo>` — approved memory edits travel in the same commit.
+5. Follow `CloseMode` from `specs/.spec-config.yml`, read at skill-load time: `local` merges into the default branch and safe-deletes the local branch (`-d`, never `-D`); `pr` stops after the commit and keeps the branch for the MR; missing flag → asks `[l]/[p]`. On a later run after the MR merged, it verifies the merge landed in the default branch, `git pull`, and deletes the local branch.
 
 It never pushes — publishing stays manual — and `git push` is deliberately absent from its `allowed-tools`.
 

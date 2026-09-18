@@ -1,6 +1,6 @@
 ---
 name: spec-close
-description: Closes an approved or already-implemented spec — state gate to Implementado, commit of the pending changes (asking first about changes the agent did not make), then CloseMode follows — local merge plus branch deletion, or commit only for the MR with a later post-merge cleanup. It never pushes.
+description: Closes an approved or already-implemented spec — state gate to Implementado, a minimal sync of the project memory (CLAUDE.md/AGENTS.md) when the change added dependencies, modules, or commands, commit of the pending changes (asking first about changes the agent did not make), then CloseMode follows — local merge plus branch deletion, or commit only for the MR with a later post-merge cleanup. It never pushes.
 disable-model-invocation: true
 argument-hint: <NN-spec-name>
 allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git symbolic-ref:*), Bash(git add:*), Bash(git commit:*), Bash(git merge:*), Bash(git pull:*), Bash(git log:*), Bash(git diff:*), Bash(cat:*), Bash(ls:*)
@@ -66,9 +66,21 @@ Run `git status --short` and split every pending file into two buckets:
 
 If you have no reliable run list (a different session, context compaction, manual work), treat **every** pending file as foreign. When in doubt, ask.
 
-### Phase 5 — One confirmation, with everything visible
+### Phase 5 — Sync project memory
 
-Resolve foreign changes first, then present:
+The close is the last moment the implementation facts are fresh. Check whether the project-memory file still describes the project accurately, and propose the minimum needed.
+
+1. **Find the memory file**, first hit in this order: `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `README.md`. If none exists, report `Memory: no memory file found — skipped` and move on.
+2. **Extract the facts this spec introduced** from the spec itself (`## Data model`, `## Decisions`) and from the pending diff: new dependencies, new modules or directories, new commands or scripts, changed conventions. Only facts introduced by **this** spec — no general cleanup, no rewriting for style.
+3. **Evaluate always** and be explicit about the outcome:
+   - Nothing relevant: `Memory: no update needed — this change adds no dependencies, modules, or commands.` Continue with no edit.
+   - Relevant facts: prepare **minimal edits** in the memory file's own language and format, and show them in the confirmation as `old → new` pairs, one line per edit. Never regenerate the file, never turn it into a changelog.
+4. **Section placement:** use an existing section that fits. If no section fits, ask before creating one; never invent structure without approval.
+5. Approved memory edits become part of the close commit (Phase 7), staged with the other approved paths.
+
+### Phase 6 — One confirmation, with everything visible
+
+Resolve foreign changes and memory edits first, then present:
 
 ```
 Close specs/NN-slug.md?
@@ -78,6 +90,11 @@ Mode:    local  — commit, merge into <default branch>, delete the branch
          (or: pr — commit only, keep the branch for the MR)
 Branch:  <current branch> → <default branch>
 Commit:  feat(spec-NN-slug): <objective from the spec>
+
+Memory:  <CLAUDE.md — N edits proposed, listed below>
+         (or: no update needed / no memory file found — skipped)
+  + Dependencies: add `zustand`
+  ~ Structure: features/payments/ now owns the checkout flow
 
 ⚠ Changes I did not make:
   - <path>  <modified|untracked>  → include / diff / revert / leave out
@@ -91,11 +108,11 @@ Proceed? [y/N]
 
 Per foreign change, offer: `include` (enters the commit), `diff` (show `git diff <path>` and ask again), `revert` (`git checkout -- <path>`, tracked files only — **never delete an untracked file yourself**, tell the human to remove it), or `leave out` (stays uncommitted). Wait for `[y/N]` before touching git.
 
-### Phase 6 — Commit
+### Phase 7 — Commit
 
-Stage only the approved paths with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(spec-NN-slug): <objective>`), including the state change when it applies. If the tree is clean, skip the commit and say so.
+Stage only the approved paths with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(spec-NN-slug): <objective>`), including the state change and the approved memory edits when they apply. If the tree is clean, skip the commit and say so.
 
-### Phase 7 — Finish according to the mode
+### Phase 8 — Finish according to the mode
 
 - **`local`:** if the current branch **is** the default branch, there is nothing to merge — skip both merge and deletion. Otherwise `git checkout <default branch>` then `git merge <branch>` (fast-forward when possible). On any conflict: stop, report the conflicting files, leave the repository on the default branch, and never resolve the conflict or force anything by yourself. Then delete the local branch: `git branch -d <branch>` (safe delete; it refuses unmerged branches). If the branch is a ticket branch (`feat/…`, `fix/…` — anything that is not `spec-NN-slug`), ask before deleting it. If `-d` fails, report why and stop. **Never use `-D`.**
 - **`pr`:** do not merge, do not delete. Close with the exact next commands for the human:
@@ -128,6 +145,7 @@ If the spec is already implemented and its branch still exists after the MR was 
 - **Never `git push` or touch a remote** — including remote branch deletion. Publishing always stays with the human.
 - **Never `-D`.** Safe delete only; if it refuses, report why.
 - **Never revert or delete a file the human did not explicitly approve.**
+- **Memory edits are minimal and factual.** Only facts this spec introduced, in the file's existing language and format; never a rewrite, never a changelog, never a new section without approval.
 - **Never edit the state line outside the gate in Phase 2.**
 - **Checkboxes are claims; this skill does not re-audit.** If the human wants verification first, that is `/spec-verify`.
 - **No push, no remote, no conflict resolution on your own.**
@@ -141,13 +159,14 @@ If the spec is already implemented and its branch still exists after the MR was 
   Phase 2  →  State gate: Aprobado → Implementado
   Phase 3  →  CloseMode: local
   Phase 4  →  Splits pending changes into mine vs foreign; foreign ones need approval
-  Phase 5  →  One confirmation with the full preview
-  Phase 6  →  Commit feat(spec-03-levels-and-highscores): <objective>
-  Phase 7  →  Merge into main (no push), delete local branch spec-03-levels-and-highscores
+  Phase 5  →  Memory sync: checks CLAUDE.md/AGENTS.md → no update needed, or minimal old → new edits
+  Phase 6  →  One confirmation with the full preview
+  Phase 7  →  Commit feat(spec-03-levels-and-highscores): <objective>
+  Phase 8  →  Merge into main (no push), delete local branch spec-03-levels-and-highscores
 
 /spec-close 04-payments   (state: Aprobado, CloseMode: pr)
 
-  Phase 7  →  Commit only; branch kept for the MR
+  Phase 8  →  Commit only; branch kept for the MR
               Output: git push -u origin spec-04-payments + open the MR (human does both)
               Later: /spec-close 04-payments again → git pull + git branch -d
 

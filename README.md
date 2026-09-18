@@ -27,7 +27,7 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 | `/spec` | Designs the feature document by asking clarifying questions | — |
 | `/spec-edit` | Edits an existing spec in place: impact analysis, one preview confirmation, minimal diff | `<NN-slug> [change]` |
 | `/spec-impl` | Validates the spec is approved and implements it group by group, pausing for review and commit after each group | `<NN-slug> [--one-shot]` |
-| `/spec-close` | Closes an implemented spec: state gate to `Implementado`, selective commit, then `CloseMode` (local merge or MR flow). Never pushes | `<NN-slug>` |
+| `/spec-close` | Closes an implemented spec: state gate to `Implementado`, project-memory sync, selective commit, then `CloseMode` (local merge or MR flow). Never pushes | `<NN-slug>` |
 | `/spec-status` | Read-only board of all specs: state, progress, dependencies, next action | — |
 | `/spec-verify` | Audits spec ↔ code: completeness, correctness, coherence; reports, never fixes | `<NN-slug>` |
 
@@ -337,10 +337,11 @@ Optionally, add a `specs/README.md` documenting the convention (see the example 
 # 5. Close it
 /spec-close 03-levels-and-highscores
 
-# Marks the spec Implementado, commits what is pending (asking first about
-# changes it did not make). CloseMode controls the rest: local → merge into
-# main (no push) + delete the branch; pr → keep the branch for the MR, then
-# run /spec-close again after it is merged.
+# Marks the spec Implementado, syncs CLAUDE.md/AGENTS.md when the change
+# added dependencies, modules, or commands, and commits what is pending
+# (asking first about changes it did not make). CloseMode controls the rest:
+# local → merge into main (no push) + delete the branch; pr → keep the
+# branch for the MR, then run /spec-close again after it is merged.
 
 # Anytime: /spec-status shows every spec — state, progress, dependencies.
 ```
@@ -417,8 +418,9 @@ Closes an implemented spec. Runs only when invoked explicitly — it is the only
 1. **Identify** — locates the spec (same flexible matching as the other skills; without an argument it infers from the active `spec-NN-slug` branch or asks).
 2. **State gate** — `Aprobado` → `Implementado` (in the file's own label and language); already `Implementado` → no change; anything else → refuses.
 3. **Separate changes** — splits `git status --short` into the agent's own changes and foreign ones (a dependency you added, a manual edit). Foreign files are never included or reverted without your explicit choice per file: include / review the diff / revert (tracked only) / leave out.
-4. **One confirmation** with the full preview, then a selective commit `feat(spec-NN-slug): <objective>` — never `git add -A`.
-5. **Follow `CloseMode`** from `specs/.spec-config.yml`:
+4. **Sync project memory** — checks the first of `CLAUDE.md` → `AGENTS.md` → `GEMINI.md` → `README.md` and proposes minimal `old → new` edits for facts this spec introduced (new dependencies, modules, commands), or says explicitly that no update is needed. Never a rewrite, never a changelog.
+5. **One confirmation** with the full preview (including the memory edits), then a selective commit `feat(spec-NN-slug): <objective>` — never `git add -A`.
+6. **Follow `CloseMode`** from `specs/.spec-config.yml`:
    - **`local`** — merges the work branch into the default branch and deletes the local branch. Nothing is pushed.
    - **`pr`** — commits and stops; the branch stays alive for the MR. You push and open it, and when it is merged you run `/spec-close` again: it verifies the merge landed in the default branch, runs `git pull`, and safe-deletes the local branch (`git branch -d`, never `-D`). The remote branch is yours to delete.
 

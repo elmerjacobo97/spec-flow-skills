@@ -27,7 +27,7 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 | `/spec` | Diseña el documento de la feature haciendo preguntas de clarificación | — |
 | `/spec-edit` | Edita un spec existente en el lugar: análisis de impacto, un preview, un solo diff mínimo | `<NN-slug> [cambio]` |
 | `/spec-impl` | Valida que el spec esté aprobado y lo implementa por grupos, pausando para revisar y commitear tras cada grupo | `<NN-slug> [--one-shot]` |
-| `/spec-close` | Cierra un spec implementado: gate de estado a `Implementado`, commit selectivo y luego `CloseMode` (merge local o flujo MR). Nunca pushea | `<NN-slug>` |
+| `/spec-close` | Cierra un spec implementado: gate de estado a `Implementado`, sincronización de memoria del proyecto, commit selectivo y luego `CloseMode` (merge local o flujo MR). Nunca pushea | `<NN-slug>` |
 | `/spec-status` | Tablero read-only de todos los specs: estado, progreso, dependencias, próxima acción | — |
 | `/spec-verify` | Audita spec ↔ código: completitud, corrección, coherencia; reporta, nunca arregla | `<NN-slug>` |
 
@@ -327,10 +327,12 @@ Opcionalmente, añade un `specs/README.md` que documente la convención (ver el 
 # 5. Ciérralo
 /spec-close 03-niveles-y-highscores
 
-# Marca el spec Implementado y commitea lo pendiente (preguntando antes por
-# los cambios que no hizo el agente). CloseMode controla el resto: local →
-# merge a main (sin push) + borra la rama; pr → conserva la rama para el MR,
-# y corres /spec-close otra vez después del merge.
+# Marca el spec Implementado, sincroniza CLAUDE.md/AGENTS.md cuando el
+# cambio agregó dependencias, módulos o comandos, y commitea lo pendiente
+# (preguntando antes por los cambios que no hizo el agente). CloseMode
+# controla el resto: local → merge a main (sin push) + borra la rama;
+# pr → conserva la rama para el MR, y corres /spec-close otra vez después
+# del merge.
 
 # En cualquier momento: /spec-status muestra todos los specs — estado, progreso, dependencias.
 ```
@@ -407,8 +409,9 @@ Cierra un spec implementado. Corre solo cuando se invoca explícitamente — es 
 1. **Identificar** — localiza el spec (mismo matching flexible que los demás; sin argumento lo infiere de la rama `spec-NN-slug` activa o pregunta).
 2. **Gate de estado** — `Aprobado` → `Implementado` (con la etiqueta e idioma del propio archivo); ya `Implementado` → sin cambio; cualquier otro → rechaza.
 3. **Separar cambios** — divide `git status --short` entre los cambios del agente y los ajenos (una dependencia que agregaste, una edición manual). Los ajenos nunca se incluyen ni se revierten sin tu elección explícita por archivo: incluir / ver diff / revertir (solo tracked) / dejar fuera.
-4. **Una confirmación** con el preview completo, y luego un commit selectivo `feat(spec-NN-slug): <objetivo>` — nunca `git add -A`.
-5. **Seguir `CloseMode`** de `specs/.spec-config.yml`:
+4. **Sincronizar memoria del proyecto** — revisa el primero de `CLAUDE.md` → `AGENTS.md` → `GEMINI.md` → `README.md` y propone edits mínimos `old → new` para los hechos que introdujo este spec (dependencias, módulos o comandos nuevos), o dice explícitamente que no hace falta actualizar. Nunca reescribe, nunca es changelog.
+5. **Una confirmación** con el preview completo (incluidos los edits de memoria), y luego un commit selectivo `feat(spec-NN-slug): <objetivo>` — nunca `git add -A`.
+6. **Seguir `CloseMode`** de `specs/.spec-config.yml`:
    - **`local`** — mergea la rama de trabajo a la rama default y borra la rama local. No se pushea nada.
    - **`pr`** — commitea y se detiene; la rama queda viva para el MR. Tú pusheas y lo abres, y cuando se mergea corres `/spec-close` otra vez: verifica que el merge llegó a la default, corre `git pull` y borra la rama local con safe delete (`git branch -d`, nunca `-D`). La rama remota la borras tú.
 
