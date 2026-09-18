@@ -54,7 +54,7 @@ Output file format: `specs/NN-slug.md` with a header block:
 > **Objetivo:** One sentence.
 ```
 
-**Estado** after saving is always `Borrador`. State transitions are human-driven — Claude must never change `**Estado:**` automatically. The single exception is the close flow in `/spec-impl` Phase 5: it runs only on an explicit "cierra la spec" request plus one confirmation preview, and it is the only place allowed to write `Implementado`.
+**Estado** after saving is always `Borrador`. State transitions are human-driven — Claude must never change `**Estado:**` automatically. The single exception is the close flow in `/spec-impl` Phase 5: it runs only on an explicit close request ("cierra la spec", "close the spec", any language) plus one confirmation preview, and it is the only place allowed to write `Implementado`.
 
 Valid states: `Borrador` → `En revisión` → `Aprobado` → `Implementado` · `Obsoleto`
 
@@ -77,11 +77,11 @@ Accepts `<NN-slug>` as argument. Phases:
 2. Read `**Estado:**` — abort with a standard error message if it is not exactly `Aprobado`.
 3. Resolve the branch: if the current branch is neither the default branch nor `spec-NN-slug`, treat it as an existing work branch (the ticket flow created it) and stay on it. Otherwise apply the `AutoCreateBranch` logic.
 4. Implement the spec's plan group by group: tick each step off (`- [ ]` → `- [x]`) inside the spec file as it completes a group, then stop with a mini-summary so the human can review and commit before saying "continue". At the end it verifies the acceptance criteria with real evidence and ticks only the ones it proved. `--one-shot` runs every group without the between-group pauses. It stops early only on a real ambiguity or a step that breaks the project.
-5. On request only — the human says "cierra la spec" — run the close flow: state gate (`Aprobado` → `Implementado`; already `Implementado` → no change; anything else → refuse), split the pending changes into the agent's own vs foreign and ask before including any foreign one, commit `feat(spec-NN-slug): <objetivo>`, merge into the default branch, delete the local branch. It never pushes.
+5. On request only — the human asks to close the spec ("cierra la spec", "close the spec", any language) — run the close flow: state gate (`Aprobado` → `Implementado`; already `Implementado` → no change; anything else → refuse), split the pending changes into the agent's own vs foreign and ask before including any foreign one, commit `feat(spec-NN-slug): <objetivo>`, merge into the default branch, delete the local branch. It never pushes.
 
 Branch creation in step 3 is gated by the `AutoCreateBranch` flag, read at skill-load time from `specs/.spec-config.yml` via a `!`cat`` snippet. Default (file or value absent) is `true` → branch is created automatically when starting from the default branch. An explicit `false` makes the skill ask `[y/N]` before creating the branch; on decline it implements on the current branch. The existing-work-branch rule takes precedence over the flag: in the ticket flow no branch is created and no question is asked. There is still no runtime config infra — the flag is just a value injected into the prompt and interpreted by the model.
 
-At completion it prints a chat summary (steps, files, why, verified/pending criteria) and suggests `/spec-verify` followed by the close phrase. On "cierra la spec" it handles the commit, the local merge and the branch deletion — and is the only skill allowed to write `Implementado` — but never pushes: publishing stays manual.
+At completion it prints a chat summary (steps, files, why, verified/pending criteria) and suggests `/spec-verify` followed by the close phrase. On a close request in any language it handles the commit, the local merge and the branch deletion — and is the only skill allowed to write `Implementado` — but never pushes: publishing stays manual.
 
 Changes to an approved spec go through `/spec-edit` and require the human to re-approve before the next `/spec-impl` run.
 

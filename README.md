@@ -26,7 +26,7 @@ npx skills@latest add elmerjacobo97/spec-flow-skills
 | `/product-spec` | Defines the business case before the technical spec: evidence, metric, 20% version, kill criterion | `[short topic]` |
 | `/spec` | Designs the feature document by asking clarifying questions | — |
 | `/spec-edit` | Edits an existing spec in place: impact analysis, one preview confirmation, minimal diff | `<NN-slug> [change]` |
-| `/spec-impl` | Validates the spec is approved and implements it group by group, pausing for review and commit after each group. Closes on request ("cierra la spec") | `<NN-slug> [--one-shot]` |
+| `/spec-impl` | Validates the spec is approved and implements it group by group, pausing for review and commit after each group. Closes on request ("cierra la spec" / "close the spec", any language) | `<NN-slug> [--one-shot]` |
 | `/spec-status` | Read-only board of all specs: state, progress, dependencies, next action | — |
 | `/spec-verify` | Audits spec ↔ code: completeness, correctness, coherence; reports, never fixes | `<NN-slug>` |
 
@@ -333,9 +333,10 @@ Optionally, add a `specs/README.md` documenting the convention (see the example 
 # 4. (Optional) Audit that the code matches the spec
 /spec-verify 03-levels-and-highscores
 
-# 5. Close it — say "cierra la spec": marks the spec Implementado,
-# commits what is pending (asking first about changes it did not make),
-# merges into main (no push) and deletes the local branch.
+# 5. Close it — ask in any language ("cierra la spec", "close the spec"):
+# marks the spec Implementado, commits what is pending (asking first about
+# changes it did not make), merges into main (no push) and deletes the
+# local branch.
 
 # Anytime: /spec-status shows every spec — state, progress, dependencies.
 ```
@@ -391,7 +392,7 @@ Implements an approved spec. Goes through four phases:
 2. **Validate** — verifies the status is `Approved`. If not, it stops.
 3. **Resolve branch** — reuses the active ticket work branch (`feat/...`, `fix/...`) when one is present; otherwise creates and switches to `spec-NN-slug`.
 4. **Implement** — group by group. Ticks each step `- [x]` inside the spec as it completes a group, then stops with a mini-summary so you can review and commit. Say "continue" for the next group. Verifies the acceptance criteria with real evidence at the end and closes with a summary. It only stops mid-group on an ambiguity or a step that breaks the project.
-5. **Close (on request)** — when you say "cierra la spec", it gates on the state (`Aprobado` → `Implementado`, already `Implementado` → no change, anything else refused), separates the changes it made from the ones you made by hand, asks per foreign file whether to include / review / revert / leave it out, commits `feat(spec-NN-slug): <objective>`, merges the work branch into the default branch locally, and deletes the local branch. It never pushes.
+5. **Close (on request)** — when you ask to close the spec ("cierra la spec", "close the spec", any language), it gates on the state (`Aprobado` → `Implementado`, already `Implementado` → no change, anything else refused), separates the changes it made from the ones you made by hand, asks per foreign file whether to include / review / revert / leave it out, commits `feat(spec-NN-slug): <objective>`, merges the work branch into the default branch locally, and deletes the local branch. It never pushes.
 
 > **Groups live in the spec:** the implementation plan is a grouped checkbox list (`### Group N — …` + `- [ ] N.M`). If an older spec is flat, `/spec-impl` proposes a grouping, writes it into the spec after your confirmation, and then implements group by group. An interrupted run resumes from the first unchecked box, and at the end only the criteria it can prove with evidence are marked — the rest wait for you.
 

@@ -243,16 +243,26 @@ Why:        <key decisions or deviations during the whole run — or "no deviati
 Verified:   <acceptance criteria marked [x], with the evidence used>
 Pending:    <criteria left unchecked and why they need human review>
 Next:       optionally run /spec-verify for an independent audit. When it
-            passes, say "cierra la spec" to mark the spec Implemented,
-            commit the pending changes, merge into <default branch> (no push)
-            and delete the local branch. Publishing stays manual.
+            passes, ask to close the spec ("cierra la spec" / "close the
+            spec" — any language) to mark it Implemented, commit the pending
+            changes, merge into <default branch> (no push) and delete the
+            local branch. Publishing stays manual.
 ```
 
 ---
 
 ### Phase 5 — Close the spec (on request only)
 
-This phase runs **only** when the human explicitly asks to close this spec ("cierra la spec", "close the spec", or an equivalent phrase), after a Phase 4 run. Never start it on your own initiative, not even when the implementation went perfectly.
+This phase runs **only** when the human explicitly asks to close this spec after a Phase 4 run. Never start it on your own initiative, not even when the implementation went perfectly.
+
+**Trigger — match by meaning, not by wording** (same principle as the state line in Phase 2). Any phrase, in any language, that clearly means "close / finish the spec" activates the phase:
+
+- Spanish: "cierra la spec", "cierre la spec", "cierra esta spec"
+- English: "close the spec", "close this spec", "finish the spec"
+- Portuguese: "fecha a spec" · French: "ferme la spec" · German: "schließe die Spec" · Italian: "chiudi la spec"
+- Typos and garbled phrasings count ("close to spec", "close spec", "cierra spec")
+
+If it is genuinely ambiguous whether the human wants to close it, ask once — `Close specs/NN-slug.md? [y/N]` — and wait. The single confirmation in Step 3 is still required: a mistaken trigger costs one `no`, never an action.
 
 **Step 1 — State gate.** Read the spec's state line first, matching by meaning (same logic as Phase 2, any language):
 
@@ -346,4 +356,4 @@ Hard rules for this phase: never `git push` or touch a remote; never `-D`; never
 
 **`--one-shot`** is the only argument flag. It skips the between-group pauses (and the review they force) for specs small enough that a single review at the end is enough. It never skips the ambiguity and broken-step stops.
 
-**Closing is explicit, verified, and local.** Phase 5 only runs when the human asks for it by phrase, after the implementation. It refuses specs that are not approved or already implemented, it asks before touching any change the agent did not make, and it never publishes: commit, merge into the default branch, and delete the local branch happen on your machine, and `git push` stays in the human's hands — the single automatic state edit in the whole workflow (`Aprobado` → `Implementado`) lives here, behind one confirmation.
+**Closing is explicit, verified, and local.** Phase 5 only runs when the human asks for it by phrase (any language), after the implementation. It refuses specs that are not approved or already implemented, it asks before touching any change the agent did not make, and it never publishes: commit, merge into the default branch, and delete the local branch happen on your machine, and `git push` stays in the human's hands — the single automatic state edit in the whole workflow (`Aprobado` → `Implementado`) lives here, behind one confirmation.
