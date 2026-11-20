@@ -22,22 +22,32 @@ Read `template.md` (in the same directory as this skill) to see the full structu
 
 ## Question protocol
 
-When this skill needs a **decision** from the user — choosing between concrete options — use the agent's interactive question tool so the user **selects instead of typing**:
+This skill must work in any agent (Claude Code, opencode, Codex, Cursor, Gemini CLI…). Questions are plain chat; a selection tool is an optional extra, never a requirement.
 
-- Claude Code: `AskUserQuestion`.
-- opencode: `question`.
-- Other agents: their structured-question / elicitation tool, if one exists.
+**Decisions** (choosing between concrete options):
 
-**Scope: decisions only.** Use the tool in Phase 2 (clarification blocks) and whenever genuine options must be chosen. **Never use it to confirm drafted text**: Phase 3 section approvals and the Phase 4 file-name confirmation are plain chat questions. The tool is for deciding, not for approving what was already written.
+- Show a numbered list in chat, one line per option, the recommendation first and marked `(Recommended)`, then close with "or tell me something else".
+- Accept any natural reply: the number, the label, a paraphrase, or free text, in any language.
+- If the agent has a selection tool (Claude Code `AskUserQuestion`, opencode `question`), you may use it with the same content. Never depend on it.
+
+**Confirmations** (approving a drafted section, a file name, an edit): one short plain question in the user's language. Any affirmative answer proceeds. No magic words and no `[y/N]` / `[Y/n]` prompts. When there is a default, say it in words ("I'll save it as specs/03-slug.md unless you prefer another name").
 
 Rules:
 
-- One question per decision, with 2–4 concrete options. Recommendation first, labeled `(Recommended)`.
-- Batch 3–5 questions per call when the tool allows it; wait for all the answers before continuing.
-- Keep labels short; put the reasoning in the option's description.
-- The user can always type a custom answer — do not hide that.
+- One question per decision, with 2–4 concrete options.
+- **Make each question self-explanatory.** The question text carries, in this order and in the user's words (not the implementer's): (a) what you already verified in the code or the conversation, if anything; (b) the decision itself; (c) one sentence saying what the answer defines ("This defines whether we need to send emails"). Never ask something the code can answer — read it and cite it instead.
+- Labels are short and understandable on their own. Each option adds one line with the concrete consequence. If the label is already clear, keep that line minimal — no filler.
+- Ask only about **material ambiguity** (scope, observable behavior, acceptance criteria). For minor details, assume a reasonable default and record it in the spec's decisions section.
+- Follow dependencies: scope → behavior → data → details. Group questions in one message only when they are independent of each other (up to 4); if an answer can change the next question, ask them one at a time. Wait for all answers before continuing.
 
-Fallback, only when the agent has no such tool (Codex, Cursor, Gemini CLI, Antigravity today): a numbered block in chat, one concrete question per line, 2–4 lettered options each, recommendation marked.
+Example of a well-formed decision:
+
+> Today there is no user onboarding flow. Who creates the password of a new user? This defines whether we need to send emails.
+>
+> 1. Email link (Recommended): the user picks the password from a one-time link; the admin never sees it.
+> 2. Temporary password: the admin sees a generated password and passes it on.
+>
+> Or tell me something else.
 
 ### Phase 1 — Understand the context
 
@@ -55,7 +65,7 @@ If the `$ARGUMENTS` argument comes in empty, ask the user for an initial **singl
 
 This is the most important phase of the command. Your job here is to **detect ambiguities and ask**, not to assume.
 
-Ask questions in blocks of 3 to 5 at a time using the Question protocol. Do not drip one single question at a time — that is exhausting. After each block, wait for all the answers before continuing.
+Ask using the Question protocol: group independent questions (up to 4 per call), but go one at a time when an answer conditions the next. After each call, wait for all the answers before continuing. Stop as soon as there is enough clarity — do not exhaust every branch.
 
 **Question categories you should always consider:**
 
@@ -65,6 +75,7 @@ Ask questions in blocks of 3 to 5 at a time using the Question protocol. Do not 
 - **Persistence:** Is anything saved between sessions? Where? With what versioning?
 - **UX and states:** What does it look like when it works? What does it look like when it fails? Are there intermediate states?
 - **Risks:** What can break this? What happens in the degraded case?
+- **Tracking:** Does this spec belong to a tracker or sprint task, and what is its id? Ask only when the project-memory file shows an id convention (e.g. branch `feature/{id}-...`) or the user already mentioned an id; otherwise skip silently. The answer becomes the `Ticket` header line.
 - **Closed decisions:** Is there any decision the user has already made and does not want to reopen?
 
 **How to phrase the questions:**
@@ -89,18 +100,19 @@ Once you have clarity, **do not generate the full spec in one shot**. You will d
 
 Strict order:
 
-1. **Header** (state, dependencies, date, one-sentence objective). The one-sentence objective is critical — if it does not fit in one sentence, go back to Phase 2.
+1. **Header** (state, dependencies, ticket id when known, date, one-sentence objective). The one-sentence objective is critical — if it does not fit in one sentence, go back to Phase 2.
 2. **Scope** (what is in and what is NOT). The "not in" must be explicit.
 3. **Data model** (concrete structures with real names). If the feature introduces no new data, skip this section and say so explicitly.
 4. **Implementation plan** (groups of checkbox steps: `### Group N — <name>` + `- [ ] N.M ...`; each step leaves the system functional and each group is a reviewable, commitable chunk — `/spec-impl` ticks them off as it implements).
-5. **Acceptance criteria** (boolean checklist, not aspirational).
+5. **Acceptance criteria** (boolean checklist, not aspirational). One observable behavior per criterion. Include at least one error or edge case when it applies, not only the happy path, and ask the user which case would hurt most if it broke.
 6. **Decisions taken and discarded** (with brief justification).
 7. **Identified risks** (only if applicable — if no relevant risks exist, skip it).
 
 **After each section:**
 
-- Show it formatted in markdown.
-- Ask in plain chat — no selection tool — one short line in the user's language: `¿Queda así o ajusto algo?`
+- Show the draft inside a ```` ```markdown ```` fence so it displays verbatim even in terminals that do not render markdown, and is copyable. Keep your comments and the approval question outside the fence, as plain text.
+- Draw any flow or diagram in plain ASCII (`+ - | -->`); Unicode box glyphs misalign across terminals.
+- Ask one short confirmation in plain chat, in the user's language (e.g. "Does it look right, or should I adjust something?").
 - If the user requests changes, apply them and show again.
 - Only move to the next section once the user confirms. A short "sí" / "dale" / "ok" counts; silence does not.
 
@@ -117,21 +129,22 @@ When all sections are confirmed:
 
 1. Determine the file's `NN-slug`. If a matching `specs/NN-slug.brief.md` was found in Phase 1, reuse its exact `NN-slug` — the technical spec and the brief share the same number, they are not two entries in the sequence. Otherwise, determine the next sequential number by looking at `specs/`: if the last one is `02-powerups.md`, this one will be `03-`.
 2. Generate a short slug from the objective (e.g. `levels-and-highscores`), unless step 1 already fixed it from an existing brief.
-3. Ask in plain chat — no selection tool — whether the proposed file name works (e.g. `¿Te sirve specs/03-slug.md?`). Do not write the file before this confirmation.
-4. Create the file at `specs/NN-slug.md` with all approved sections.
-5. Mark the state as `Draft` by default. **Do not mark it as `Approved` automatically** — the user does that once they have re-read it.
-6. **Seed the config file if it does not exist.** Check for `specs/.spec-config.yml`. If it is **missing**, create it with the default content below. If it **already exists, leave it untouched** — never overwrite the user's settings.
+3. Run a silent self-check before asking: (a) the objective fits in one sentence; (b) each plan group serves something in scope, and each criterion has a step that makes it possible; (c) no vague criterion; (d) "out of scope" is explicit. Report only failures, one line each, and fix them with the user. If all pass, say nothing.
+4. Ask in plain chat, in the user's language, whether the proposed file name works (e.g. "I'll save it as specs/03-slug.md, okay?"). Do not write the file before this confirmation.
+5. Create the file at `specs/NN-slug.md` with all approved sections.
+6. Mark the state as `Draft` by default. **Do not mark it as `Approved` automatically** — the user does that once they have re-read it.
+7. **Seed the config file if it does not exist.** Check for `specs/.spec-config.yml`. If it is **missing**, create it with the default content below. If it **already exists, leave it untouched** — never overwrite the user's settings.
 
    ```yaml
    # spec workflow configuration
    #
    # AutoCreateBranch — controls whether /spec-impl creates the git branch automatically.
    #   true  (default) → /spec-impl creates and switches to spec-NN-slug without asking
-   #   false           → /spec-impl asks for [y/N] confirmation before creating the branch
+   #   false           → /spec-impl asks you in chat before creating the branch
    AutoCreateBranch: true
    ```
 
-7. Confirm to the user:
+8. Confirm to the user:
    - Path of the created file.
    - Reminder: the spec is in `Draft` state. Change it to `Approved` once you have re-read it.
    - If you just created `specs/.spec-config.yml`, mention it exists and that `AutoCreateBranch` defaults to `true` (set it to `false` to control branch creation yourself).
@@ -153,13 +166,12 @@ When all sections are confirmed:
 
 Be direct and specific. Do not apologize for asking. Do not use phrases like "if you don't mind..." or "could you maybe...". The user invoked this skill precisely because they want you to ask questions. Use the Question protocol when a decision needs concrete options; for everything else — including section approvals — ask in plain chat, one question per line.
 
-Example of a well-formed block (fallback format):
+Example of a well-formed block of independent questions:
 
-> Before writing the data model I need to clarify three things:
+> Before writing the data model I need to clarify two things:
 >
-> 1. **Persistence.** localStorage, IndexedDB, or a JSON file on disk? Recommendation: localStorage if the data fits in <5MB and does not need queries.
-> 2. **Schema versioning.** What happens when the format changes? Options: (a) version prefix in the key, (b) ignore and rebuild, (c) migrate on load.
-> 3. **Privacy.** Is the data sensitive? If yes, is it encrypted? Is it deleted on logout?
+> 1. **Persistence.** The game has no saved state today. Where do high scores live? This defines whether we need a storage layer. Options: (a) localStorage, (b) IndexedDB, (c) JSON file. Recommendation: (a), the data fits in <5MB and needs no queries.
+> 2. **Schema versioning.** This defines how we migrate later. Options: (a) version prefix in the key, (b) ignore and rebuild, (c) migrate on load. Recommendation: (a).
 
 ## Arguments
 

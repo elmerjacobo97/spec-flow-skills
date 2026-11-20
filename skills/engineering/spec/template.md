@@ -13,6 +13,7 @@ Every spec starts with metadata in a blockquote (no tables, no blocks, simple as
 
 > **Status:** Draft
 > **Depends on:** SPEC 01, SPEC 02
+> **Ticket:** S4-06
 > **Date:** YYYY-MM-DD
 > **Objective:** A single sentence. If you need two sentences, the feature is too big.
 ```
@@ -20,6 +21,8 @@ Every spec starts with metadata in a blockquote (no tables, no blocks, simple as
 **Valid states:** `Draft`, `In review`, `Approved`, `Implemented`, `Obsolete`.
 
 > The labels above are the English defaults. The skills also accept equivalents in any language (e.g. Spanish `Borrador` / `En revisión` / `Aprobado` / `Implementado` / `Obsoleto`). Pick one set per repo and stay consistent.
+
+**Ticket (optional):** the id of the tracker or sprint task this spec belongs to. Omit the line when there is none. `/spec-impl` and `/spec-close` use it to name the branch and the commit scope when the project defines such a convention. Equivalent labels (`Tarea`, `Task`) are matched by meaning, like the state labels.
 
 **Objective rule:** one sentence that a human reads in 5 seconds and understands what is going to be built. If it doesn't fit in one sentence, split the feature.
 
@@ -120,7 +123,10 @@ Boolean checklist. Each item can be verified with yes or no.
 - [ ] The game loads without errors in the console.
 - [ ] Breaking a brick adds exactly 10 points.
 - [ ] Reloading the page preserves the high-scores.
+- [ ] With localStorage disabled, the game still runs and shows a "scores not saved" notice.
 ```
+
+Cover the error and edge cases that would hurt most if broken, not only the happy path. For a subtle case, an optional `WHEN <action> THEN <result>` phrasing keeps it unambiguous: "WHEN the high-score list is empty THEN the scores screen shows 'No scores yet'."
 
 At the end of a run, `/spec-impl` verifies these one by one and marks `- [x]` only the ones it can prove with real evidence (test suite, build, linter, or the check described). Everything else stays unchecked for the human to verify.
 
