@@ -121,6 +121,12 @@ The repo is consumed by users in two ways:
 
 `scripts/link-skills.sh` symlinks every skill into `~/.claude/skills` for local development.
 
+## Git workflow
+
+Git workflow: direct
+Git host: github
+Base branch: main
+
 ## No build or test commands
 
 There is no package manager, build step, or test suite. All skills are plain Markdown files.
