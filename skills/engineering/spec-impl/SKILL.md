@@ -1,12 +1,14 @@
 ---
 name: spec-impl
-description: Implements an approved spec group by group. Validates that the state means "Approved" (in any language), resolves the git branch (reuses the ticket work branch when one is active, otherwise creates spec-NN-slug), ticks off the implementation plan inside the spec as it progresses, stops after each group for review and commit, and verifies the acceptance criteria at the end. With --one-shot it runs every group without pauses.
+description: Implements an approved spec group by group. Validates that the state means "Approved" (in any language), resolves the git branch (reuses the ticket work branch when one is active, otherwise follows the project's branch convention, otherwise creates spec-NN-slug), ticks off the implementation plan inside the spec as it progresses, stops after each group for review and commit, and verifies the acceptance criteria at the end. With --one-shot it runs every group without pauses.
 disable-model-invocation: true
 argument-hint: <NN-spec-name> [--one-shot]
 allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git symbolic-ref:*), Bash(cat:*), Bash(ls:*)
 ---
 
 # /spec-impl — Implementer of approved specs
+
+Reply in the language of the user's prompt. Keep code, commands, paths, ids, and branch names exactly as written.
 
 ## Session context
 
@@ -111,7 +113,7 @@ Do not offer alternatives, do not suggest "I can still start if you want". The b
 
 Once you have confirmed the state means `Approved`:
 
-1. Derive the branch name from the spec file's full name, without the extension. Format: `spec-NN-slug`. Examples:
+1. Derive the **default** branch name from the spec file's full name, without the extension. Format: `spec-NN-slug`. It is used only when the project defines no convention (step 4). Examples:
 
    - `01-mvp-arkanoid.md` → branch `spec-01-mvp-arkanoid`
    - `02-powerups.md` → branch `spec-02-powerups`
@@ -124,43 +126,53 @@ Once you have confirmed the state means `Approved`:
 
    - **Do not create any branch. Do not read or apply `AutoCreateBranch`.** Stay on the current branch.
    - Announce: `Using existing work branch: <branch> (ticket flow; no new branch created).`
-   - Skip to step 5.
+   - Skip to step 6.
 
    This rule exists so `/spec-impl` cooperates with ticket-driven work: the ticket is the unit of tracking, and there is one work branch per task. Do not duplicate it with `spec-NN-slug`.
 
-4. Read the `AutoCreateBranch` flag from the **Branch-creation config** shown in the session context above.
+4. **Resolve the branch name.** The project's own convention wins over the default `spec-NN-slug`.
+
+   - Read the project-memory file (first hit of `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `README.md`) and look for its git rules: a branch-name pattern, the base branch, the workflow mode.
+   - If a pattern exists, fill its placeholders: `{id}` ← the spec's `Ticket` header line; `{short-description}` / `{slug}` ← the spec's slug without the `NN-` prefix. Example: pattern `feature/{id}-{short-description}`, `Ticket: S1-11`, spec `01-user-administration` → `feature/S1-11-user-administration`.
+   - If the pattern needs `{id}` and the spec has no `Ticket` line: ask once for the id, use it for this run, and suggest recording it with `/spec-edit` (this skill never edits the header).
+   - If the memory file names a `Base branch:`, treat it as the default branch, ahead of the `origin/HEAD` detection above.
+   - If no convention is found, the name is `spec-NN-slug`.
+   - From here on, `<branch>` means the name resolved in this step.
+
+5. Read the `AutoCreateBranch` flag from the **Branch-creation config** shown in the session context above.
 
    - If the config file does not exist, the value is missing, or the value is unrecognized → treat it as `true` (the default).
    - Only an explicit `false` (in any capitalization) disables automatic branch creation.
 
    **If `AutoCreateBranch` is `true` (default):** proceed without asking.
 
-   - If the branch **does not exist**: create it with `git checkout -b spec-NN-slug`.
+   - If the branch **does not exist**: create it with `git checkout -b <branch>`.
    - If the branch **already exists**: inform the user that the branch already existed (it may mean previous work is being resumed).
-   - If the **current branch is already** `spec-NN-slug`: stay on it and tell the user previous work is being resumed.
-   - In all cases: switch to the branch with `git checkout spec-NN-slug` and confirm the change was successful before continuing.
+   - If the **current branch is already** `<branch>`: stay on it and tell the user previous work is being resumed.
+   - In all cases: switch to the branch with `git checkout <branch>` and confirm the change was successful before continuing.
 
    **If `AutoCreateBranch` is `false`:** ask before touching git. Show:
 
    ```
-   AutoCreateBranch is set to false.
-   Create and switch to the branch spec-NN-slug? [y/N]
+   AutoCreateBranch is off. Shall I create and switch to the branch <branch> (<project convention | default>)?
    ```
 
-   - If the user answers **yes**: create/switch to the branch exactly as in the `true` case above.
-   - If the user answers **no** or leaves it empty: **do not create any branch.** Tell the user you will implement on the current branch (the one shown in the session context above) and ask for explicit confirmation to continue there. Do not improvise — wait for the answer.
+   Plain chat, in the user's language.
 
-5. Visually confirm to the user the spec is ready and which branch is active:
+   - Any affirmative reply: create/switch to the branch exactly as in the `true` case above.
+   - A refusal, or no clear answer: **do not create any branch.** Say you will implement on the current branch (the one shown in the session context above) and ask whether to continue there. Do not improvise — wait for the answer.
+
+6. Visually confirm to the user the spec is ready and which branch is active:
 
    ```
    ✅ Ready to implement.
 
    Spec:   specs/NN-slug.md
-   Branch: <branch>  (active)   (← e.g. "spec-NN-slug (created)", "spec-NN-slug (resumed)", or "feat/<slug> (existing ticket branch)")
+   Branch: <branch>  (active)   (← e.g. "spec-NN-slug (created, default)", "feature/S1-11-users (created, project convention)", "<branch> (resumed)", or "feat/<slug> (existing ticket branch)")
    State:  Approved   (← echo back the actual value found in the spec)
    ```
 
-6. **Do not start implementing yet.** First show the spec summary to the user so they have it fresh. Extract and show:
+7. **Do not start implementing yet.** First show the spec summary to the user so they have it fresh. Extract and show:
    - The **objective** (the line after `**Objective:**` / `**Objetivo:**` / equivalent label).
    - The **scope** (the `## Scope` / `## Alcance` / equivalent section).
    - The **implementation plan** (the grouped checkbox steps — `## Implementation plan` / `## Plan de implementación` / equivalent). If it has no groups, Phase 4 will propose them.
@@ -180,18 +192,15 @@ Match section headings by meaning, not by exact wording — the spec may be auth
 
 Then, depending on the mode:
 
-**Default mode — group by group.** Show the group list and ask for a single start confirmation:
+**Default mode — group by group.** Invoking `/spec-impl` on an approved spec is the go-ahead: do not ask for a start confirmation. Announce the plan and begin:
 
 ```
-I am going to implement the plan group by group.
-After each group I will stop so you can review the diff and commit.
+Implementing the plan group by group. After each group I stop so you can review the diff and commit.
 
 Group 1/M: <name> — starting now.
-
-Shall I start?
 ```
 
-Wait for explicit confirmation ("yes", "go ahead", "go", or equivalent). Then, for each group, from first to last:
+Then, for each group, from first to last:
 
 1. Implement the group's steps **in order**, without stopping between steps.
 2. After each step completes, edit the spec and change that step's `- [ ]` to `- [x]`. One line, nothing else.
@@ -203,12 +212,13 @@ Wait for explicit confirmation ("yes", "go ahead", "go", or equivalent). Then, f
    Files: <paths touched>
    What:  <one or two lines>
    Why:   <key decisions or deviations, each with its reason — or "no deviations">
-   Next:  review the diff and commit. Say "continue" for Group N+1.
    ```
 
-   On the **last** group, replace the `Next:` line with `Next: final verification — acceptance criteria` and continue to the verification below instead of stopping.
+   End the summary with one natural question in the user's language, e.g. "Want me to continue with Group N+1 once you've reviewed?"
 
-4. **Stop and wait.** Do not start the next group until the user explicitly says to continue ("continue", "go ahead", "siguiente", "dale", or equivalent).
+   On the **last** group, skip the closing question, say that final verification of the acceptance criteria comes next, and continue to the verification below instead of stopping.
+
+4. **Stop and wait for the review.** Do not start the next group until the user answers. Any reply that is not a stop or a change request means go on ("ok", "sigue", "next", "looks good", "dale", a thumbs-up…): no magic word is ever required. If the reply asks for changes to the group, make them first, then ask again.
 5. If a group is interrupted mid-way, the first unchecked `- [ ]` step is where work resumes — including in a later session. Skip steps already marked `- [x]`.
 
 **One-shot mode (`--one-shot`).** Same group logic, but never pause between groups: after each group's mini-summary, continue immediately to the next group. Pause only on one of the stop conditions below. Use it for small specs where reviewing group by group adds no value.
@@ -217,11 +227,14 @@ Wait for explicit confirmation ("yes", "go ahead", "go", or equivalent). Then, f
 
 **One rule above all:** implement what the spec says. If something in the spec looks suboptimal to you, mention it as an observation but implement what was agreed. Changes to the spec go into the spec, not into the code by surprise (use `/spec-edit` for that).
 
-**Only three reasons to stop mid-run:**
+**Re-read the spec from disk before each group.** The human may have edited it since you last read it; never rely on the earlier read.
+
+**Only four reasons to stop mid-run:**
 
 1. **Real ambiguity** the spec does not resolve: describe it exactly, present two or three concrete options, wait for the user's decision. Do not improvise.
 2. **A step fails** or leaves the project broken (tests, build, or the step's own check fail): stop, report what failed, and do **not** mark that step `- [x]`.
 3. **The user asks for something out of scope:** remind them it is out of this spec's scope, suggest noting it for the next spec, do not implement it on this branch.
+4. **The spec turns out to be wrong or incomplete:** implementing it would require cutting, narrowing, deferring, or adjusting specified behavior, or the work needs more than the spec describes. Stop, describe exactly what does not fit, suggest `/spec-edit`, and do not absorb the change silently.
 
 **Keep a running list of your own changes.** From the first group on, accumulate every file you create or modify during this run (each group summary already prints a `Files:` line). The `/spec-close` skill uses that list to tell your changes apart from the human's: the spec's own files (`specs/NN-slug.md` and its brief) and any pending change attributable to this spec's plan go into the close commit; anything unattributable stays out by default.
 
@@ -253,7 +266,7 @@ Next:       optionally run /spec-verify for an independent audit. When it
 ## Summary of expected behavior
 
 ```
-/impl-spec 01-mvp-arkanoid  (on the default branch)
+/spec-impl 01-mvp-arkanoid  (on the default branch)
 
   Phase 1  →  Finds specs/01-mvp-arkanoid.md
   Phase 2  →  Reads the state → "Approved" (or "Aprobado", etc.) → ✅ continues
@@ -263,12 +276,12 @@ Next:       optionally run /spec-verify for an independent audit. When it
               inside the spec, then stops after each group for review + commit
               Ends by verifying the acceptance criteria and summarizing
 
-/impl-spec 01-mvp-arkanoid --one-shot  (small specs)
+/spec-impl 01-mvp-arkanoid --one-shot  (small specs)
 
   Phase 4  →  Same group logic with no pauses: mini-summary after each group
               and continues; ends by verifying the acceptance criteria
 
-/impl-spec 01-mvp-arkanoid  (on a ticket work branch, e.g. feat/arkanoid-levels)
+/spec-impl 01-mvp-arkanoid  (on a ticket work branch, e.g. feat/arkanoid-levels)
 
   Phase 1  →  Finds specs/01-mvp-arkanoid.md
   Phase 2  →  Reads the state → "Approved" → ✅ continues
@@ -276,7 +289,7 @@ Next:       optionally run /spec-verify for an independent audit. When it
               → stays on feat/arkanoid-levels, does not create spec-01-mvp-arkanoid
   Phase 4  →  Group by group on the ticket branch, same flow
 
-/impl-spec 02-powerups  (state: Draft / Borrador)
+/spec-impl 02-powerups  (state: Draft / Borrador)
 
   Phase 1  →  Finds specs/02-powerups.md
   Phase 2  →  Reads the state → "Draft" → ❌ stops
@@ -287,7 +300,7 @@ Next:       optionally run /spec-verify for an independent audit. When it
 
   /spec-close  →  State gate: Aprobado → Implementado
                   Spec files + attributable code go into the commit; unattributable stays out
-                  One compact block + one question (A/B/C) → commit → merge into main (no push) → delete the local branch
+                  One compact block + one plain-chat question (numbered options) → commit → merge into main (no push) → delete the local branch
 
 /spec-impl 04-payments  →  then /spec-close 04-payments  (CloseMode: pr)
 
@@ -296,9 +309,9 @@ Next:       optionally run /spec-verify for an independent audit. When it
                   Later: /spec-close 04-payments again → git checkout main → git pull → git branch -d
 ```
 
-**Branch creation is controlled by the `AutoCreateBranch` flag** in `specs/.spec-config.yml`. It defaults to `true` (create the branch automatically when starting from the default branch). Set it to `false` to make Phase 3 ask `[y/N]` before creating the branch. The existing-work-branch rule (ticket flow) takes precedence over `AutoCreateBranch`: in that case no branch is created and no question is asked.
+**Branch creation is controlled by the `AutoCreateBranch` flag** in `specs/.spec-config.yml`. It defaults to `true` (create the branch automatically when starting from the default branch). Set it to `false` to make Phase 3 ask in chat before creating the branch. The existing-work-branch rule (ticket flow) takes precedence over `AutoCreateBranch`: in that case no branch is created and no question is asked.
 
-**The close mode is controlled by the `CloseMode` flag** in the same file, read by `/spec-close`: `local` merges into the default branch and deletes it locally; `pr` commits and keeps the branch for a pull/merge request, with a later cleanup (`git pull` + safe delete) once the MR is merged. When the flag is missing, `/spec-close` asks it as the single question of its close block — `A) local`, `B) pr`, `C) cancel` — it never assumes, and it never pushes in either mode.
+**The close mode is controlled by the `CloseMode` flag** in the same file, read by `/spec-close`: `local` merges into the default branch and deletes it locally; `pr` commits and keeps the branch for a pull/merge request, with a later cleanup (`git pull` + safe delete) once the MR is merged. When the flag is missing, `/spec-close` asks it as the single question of its close block — commit and merge locally, commit only for the pull request, or cancel — it never assumes, and it never pushes in either mode.
 
 **Flat plans get grouped, not guessed:** if an approved spec has a flat checklist or an older numbered list, Phase 4 proposes a grouping, writes it into the spec after one confirmation, and then implements group by group. The grouping stays in the spec, so a resumed run knows exactly where it stopped.
 

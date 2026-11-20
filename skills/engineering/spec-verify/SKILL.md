@@ -8,6 +8,8 @@ allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(cat:*), Bash(ls:*)
 
 # /spec-verify — Independent audit of spec against code
 
+Reply in the language of the user's prompt. Keep code, commands, paths, ids, and branch names exactly as written.
+
 `/spec-impl` verifies the acceptance criteria at the end of its own run. This skill is different: it is a **second, independent look**, and it can be re-run at any time — before merging, after a refactor, or months later to catch drift.
 
 It is an audit. It reads, searches, and runs checks; it never fixes anything.
@@ -103,6 +105,8 @@ Mismatch:       none | spec is stale (fix with /spec-edit) | code drifted (fix t
 Next:           <concrete step — e.g. fix the findings, then /spec-close NN-slug
 ```
 
+If any check is `Not verified` and there is no CRITICAL, do not say "safe to merge". Say instead: "No critical issues in the checks that ran; not verified: <checks and reasons>."
+
 The **mismatch direction** matters and must be explicit:
 
 - **Code is right, the spec is stale** → the authoritative fix is `/spec-edit NN-slug` (reconcile the spec to reality).
@@ -121,6 +125,8 @@ Never decide this silently in ambiguous cases — present what you found and let
 - **Checkboxes are claims, not evidence.** A checked box with no code behind it is a finding.
 - **Evidence or it did not happen.** Every finding carries a `file:line` or the exact command and result.
 - **No tests defined?** Say it plainly — do not pretend the absence of tests is a pass.
+- **Never count a skipped check as a pass.** A check that applies but has no usable evidence is reported as `Not verified (<reason>)`. A check that does not apply to this spec is `Not applicable`. Only the first one lowers confidence in the verdict.
+- **When unsure, pick the lower severity** (SUGGESTION < WARNING < CRITICAL). Every finding carries a concrete fix and `file:line`; no vague advice like "consider reviewing".
 
 ## Summary of expected behavior
 

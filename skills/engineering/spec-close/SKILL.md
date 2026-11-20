@@ -8,6 +8,8 @@ allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bas
 
 # /spec-close — Close an implemented spec
 
+Reply in the language of the user's prompt. Keep code, commands, paths, ids, and branch names exactly as written.
+
 Closes the loop after implementation and audit: marks the spec `Implementado`, commits what is still pending, and follows `CloseMode` — a local merge with branch deletion, or a commit that keeps the branch alive for the MR. Publishing is never part of this skill.
 
 ## Session context
@@ -36,7 +38,7 @@ Close-mode config:
 The received argument is: `$ARGUMENTS`
 
 - If it has a value, find the file with the same flexible matching the other skills use: full name (`03-levels-and-highscores`), only the number (`03`), or only the slug (`levels-and-highscores`). If you do not find it, show the available specs and ask for the correct name.
-- If it is empty and the current branch is `spec-NN-slug`, propose the matching `specs/NN-slug.md` and ask for one confirmation before continuing.
+- If it is empty and the current branch is `spec-NN-slug` (or a branch whose id matches the `Ticket` line of exactly one spec), propose the matching `specs/NN-slug.md` and ask for one confirmation before continuing.
 - If it is empty and there is no obvious match, list the specs available above and ask which one to close. Stop and wait.
 
 ### Phase 2 — State gate
@@ -57,6 +59,8 @@ Read `CloseMode` from the config shown in the session context:
 - `pr` (accept `mr`, `MR`, `PR`) → commit and stop: the branch stays alive for a pull/merge request; no merge, no deletion.
 - Missing or unrecognized → the mode is a **decision**, not a confirmation: ask it as the single question of Phase 6, with the interactive question tool when available. Never assume a mode.
 
+**The project's rule wins.** Read the project-memory file (first hit of `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `README.md`). If it says the workflow is PR-based (e.g. `Git workflow: review` or `full`, or "never push or merge directly into <base>"), the mode is `pr` and the local merge is not offered, even when `specs/.spec-config.yml` says `local`; say that the project rule overrides the config. The memory file's `Base branch:` is the default branch, ahead of the `origin/HEAD` detection.
+
 ### Phase 4 — Classify the pending changes
 
 Run `git status --short`, then read the diff of every pending file and sort them:
@@ -64,7 +68,7 @@ Run `git status --short`, then read the diff of every pending file and sort them
 1. **Files the agent touched in this conversation** — the implementation or fixes that happened here. They enter the commit.
 2. **Files of the spec being closed** — `specs/NN-slug.md` (the file read in Phase 2) and its companion `specs/NN-slug.brief.md` when it exists. They always enter the commit without asking: the spec file carries the state change from Phase 2 and the brief shares its number. Files of another spec do not fall in this bucket.
 3. **Attributable changes** — pending files whose path or diff matches this spec's plan, its decisions, or their fallout (migration churn included). They enter the commit; report only their count, never a per-file question.
-4. **Unattributable changes** — a dependency the human added, a manual edit, anything the diff does not connect to this spec. They stay **out of the commit** by default and appear under `No incluidos:` in the confirmation. Never revert or delete one.
+4. **Unattributable changes** — a dependency the human added, a manual edit, anything the diff does not connect to this spec. They stay **out of the commit** by default and appear under `Not included:` in the confirmation. Never revert or delete one.
 
 If you have no reliable run list (a different session, context compaction, manual work), bucket 1 is empty: attribute each pending file by reviewing its diff against the spec. A file whose diff does not clearly match is unattributable — never guess it in. If the human wants to approve file by file, they will say so; only then ask per file.
 
@@ -88,7 +92,7 @@ No phase narration, no progress prelude: the first visible output is the block b
 Close specs/NN-slug.md — <current state> → <new state>
 
 Branch:  <current branch> → <default branch>
-Commit:  feat(spec-NN-slug): <objective from the spec>
+Commit:  feat(<scope>): <objective from the spec>
 Files:   <N> pending — spec + code attributable to this spec
 Memory:  <CLAUDE.md — N edits>   (or: no changes / no memory file found)
   ~ <edit 1, one line>
@@ -96,18 +100,22 @@ Memory:  <CLAUDE.md — N edits>   (or: no changes / no memory file found)
 Not included: <path, path>       (or: none)
 ```
 
-Then the single question. Use the interactive question tool when available — Claude Code `AskUserQuestion`, opencode `question` — so the human selects instead of typing; the plain-chat fallback keeps the same A/B/C letters.
+**Commit scope.** Use the project's commit format from the memory file when it defines one (e.g. Conventional Commits with the task id as scope: `feat(S1-11): ...`). Find the id in this order: the spec's `Ticket` header line → parsed from the current branch name with the project's branch pattern → ask in the single question below. With no project convention, the scope is `spec-NN-slug`. This skill makes one commit and follows the project's commit *format* only; if the project asks for several commits per task (e.g. one per purpose), that grouping stays with the human or the project's own git-workflow tooling.
 
-- `CloseMode` missing or unrecognized: `A) local — commit, merge into <default branch>, delete the branch (no push)`, `B) pr — commit only, keep the branch for the MR`, `C) cancel`.
-- `CloseMode` set: `A)` the configured mode, labeled `(Recommended)`, `B)` the other mode, `C) cancel`.
+Then the single question, in plain chat and in the user's language: a numbered list, one line per choice saying what it does to the repo, the recommendation first, and "or tell me something else". If the agent has a selection tool it may be used with the same content; it is never required. Option names are plain words, not config keys.
 
-The answer is the approval: A or B runs Phases 7–8; C or anything else stops. No `[y/N]`, no `y l` combinations, no second confirmation.
+- `CloseMode` missing or unrecognized: `1. Commit and merge into <default branch> locally; the branch is deleted, nothing is pushed`, `2. Commit only; the branch stays for the pull request`, `3. Cancel`.
+- `CloseMode` set: `1.` the configured mode in the same words, marked `(Recommended)`, `2.` the other mode, `3. Cancel`.
 
-Unattributable files stay out and are listed on the `No incluidos:` line; the human can ask for `diff <path>` or to include one in chat before answering.
+The answer is the approval: choosing 1 or 2 (by number, by words, or any clear equivalent) runs Phases 7–8; cancel or an unclear answer stops. No yes/no prompt and no second confirmation.
+
+Never change the case of an id or branch name taken from the `Ticket` line or the project's pattern (`S1-11` stays `S1-11`); only the slug is lowercase.
+
+Unattributable files stay out and are listed on the `Not included:` line; the human can ask for `diff <path>` or to include one in chat before answering.
 
 ### Phase 7 — Commit
 
-Stage the paths selected in Phase 4 (buckets 1–3) plus the approved memory edits with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(spec-NN-slug): <objective>`), including the state change when it applies. If the tree is clean, skip the commit and say so.
+Stage the paths selected in Phase 4 (buckets 1–3) plus the approved memory edits with `git add <path> …` — never `git add -A`. Commit with the proposed message (`feat(<scope>): <objective>`, scope as resolved in Phase 6), including the state change when it applies. If the tree is clean, skip the commit and say so.
 
 ### Phase 8 — Finish according to the mode
 
@@ -119,6 +127,7 @@ Stage the paths selected in Phase 4 (buckets 1–3) plus the approved memory edi
   Next (yours — I never push):
     git push -u origin <branch>
     open the MR → <default branch>
+    (if your project has a git-workflow skill or instructions, you can ask it to do this)
 
   When the MR is merged, run /spec-close again (or say "cleanup the spec branch")
   and I will: git checkout <default branch> → git pull → git branch -d <branch>.
@@ -143,7 +152,7 @@ If the spec is already implemented and its branch still exists after the MR was 
 - **Never `-D`.** Safe delete only; if it refuses, report why.
 - **Never revert or delete a file.** Unattributable changes stay out of the commit by default; nothing is ever reverted or removed.
 - **No phase narration.** Never open with "Phase 1–5 done", "spec found", "gate passed", or a checklist of what was just reviewed. The first visible output is the Phase 6 block.
-- **The mode question is the only question.** A/B/C is the whole approval; unattributable files stay out unless the human asks otherwise in chat.
+- **The mode question is the only question.** The numbered answer is the whole approval; unattributable files stay out unless the human asks otherwise in chat.
 - **Memory edits are minimal and factual.** Only facts this spec introduced, in the file's existing language and format; never a rewrite, never a changelog, never a new section without approval.
 - **Never edit the state line outside the gate in Phase 2.**
 - **Checkboxes are claims; this skill does not re-audit.** If the human wants verification first, that is `/spec-verify`.
@@ -159,13 +168,13 @@ If the spec is already implemented and its branch still exists after the MR was 
   Phase 3  →  CloseMode: local
   Phase 4  →  Attributes every pending change: spec files + attributable code go in; unattributable stays out
   Phase 5  →  Memory sync: checks CLAUDE.md/AGENTS.md → no update needed, or minimal old → new edits
-  Phase 6  →  One compact block + one question: A) local  B) pr  C) cancel
+  Phase 6  →  One compact block + one plain-chat question: 1) merge locally  2) commit only for the PR  3) cancel
   Phase 7  →  Commit feat(spec-03-levels-and-highscores): <objective>
   Phase 8  →  Merge into main (no push), delete local branch spec-03-levels-and-highscores
 
 /spec-close 06-new-thing   (state: Aprobado, CloseMode: missing)
 
-  Phase 6  →  Same block, then A) local  B) pr  C) cancel — no mode assumed
+  Phase 6  →  Same block, then the same three options — no mode assumed
 
 /spec-close 04-payments   (state: Aprobado, CloseMode: pr)
 

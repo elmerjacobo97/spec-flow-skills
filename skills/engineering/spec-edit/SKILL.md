@@ -60,7 +60,7 @@ Read the spec file completely before touching anything. Build a mental index of:
 
 If the change request is already clear and specific (e.g. "remove the combo system from the plan"), skip to Phase 4.
 
-If it is vague or missing, ask **one block of 2–4 concrete questions** — not a long interview. Examples of the right shape:
+If it is vague or missing, ask **one block of 2–4 concrete questions** — not a long interview. Each question states what the answer defines, and never asks what the spec or code already answers. Show the preview inside a ```` ```markdown ```` fence so it displays verbatim in any terminal. Examples of the right shape:
 
 1. What exactly changes — scope, plan, criteria, decisions, or several?
 2. What must stay exactly as it is?
@@ -108,8 +108,10 @@ This is the core of the skill. Map the change to the spec's sections before writ
 **One confirmation.** Show the complete preview — edits plus cascades — and ask once:
 
 ```
-Apply these edits to specs/NN-slug.md? [Y/n]
+Shall I apply these edits to specs/NN-slug.md?
 ```
+
+Plain chat, in the user's language. Any affirmative reply applies them; a change request revises the preview first.
 
 Do not apply anything before this confirmation. Do not apply a partial version.
 

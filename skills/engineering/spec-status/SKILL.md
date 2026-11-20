@@ -8,6 +8,8 @@ allowed-tools: Bash(ls:*), Bash(cat:*)
 
 # /spec-status — Board of all specs
 
+Reply in the language of the user's prompt. Keep code, commands, paths, ids, and branch names exactly as written.
+
 One command, the whole picture: which specs exist, what state each one is in, how much of each plan is implemented, and what the next action is. Read-only — it never edits a spec or changes a state.
 
 ## Session context
@@ -36,7 +38,7 @@ If there are no specs at all: say so and suggest starting with `/spec`.
 
 For each spec file, read:
 
-- The **header**: state (`**Status:**` / `**Estado:**` / equivalent), `Depends on:` / `Depende de:`, date, and the one-sentence objective.
+- The **header**: state (`**Status:**` / `**Estado:**` / equivalent), `Depends on:` / `Depende de:`, `Ticket:` when present, date, and the one-sentence objective.
 - The **implementation plan**: count checked and unchecked steps (`- [x]` / `- [ ]`), including per-group progress if it is useful.
 - The **acceptance criteria**: same count.
 
@@ -49,12 +51,12 @@ Show a table sorted by `NN`, plus a briefs section:
 ```
 📋 Specs — N found
 
-| # | Slug | State | Plan | Criteria | Depends on | Next |
-| --- | --- | --- | --- | --- | --- | --- |
-| 01 | mvp-arkanoid | Implementado | 6/6 | 5/5 | — | done |
-| 02 | powerups | Borrador | 0/4 | 0/3 | 01 | review and approve |
-| 03 | levels | En revisión | 2/5 | 0/4 | 01, 02 | keep drafting with /spec |
-| 04 | billing | Aprobado | 0/6 | 0/5 | — | run /spec-impl |
+| # | Slug | Ticket | State | Plan | Criteria | Depends on | Next |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 01 | mvp-arkanoid | — | Implementado | 6/6 | 5/5 | — | done |
+| 02 | powerups | — | Borrador | 0/4 | 0/3 | 01 | review and approve |
+| 03 | levels | S2-03 | En revisión | 2/5 | 0/4 | 01, 02 | keep drafting with /spec |
+| 04 | billing | S4-06 | Aprobado | 0/6 | 0/5 | — | run /spec-impl |
 
 Briefs without a spec:
 - 05-push-notifications.brief.md (optional step: run /spec 05)

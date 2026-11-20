@@ -8,6 +8,8 @@ allowed-tools: Bash(git status:*), Bash(ls:*)
 
 # /spec-explore — Think it through before committing
 
+Reply in the language of the user's prompt. Keep code, commands, paths, ids, and branch names exactly as written.
+
 Not every idea arrives ready for a spec. Sometimes the problem is understood but the approach is not: several options, unclear tradeoffs, or you do not yet know what the codebase already does.
 
 This skill exists for that moment. It is a **no-stakes thinking partner**: it reads the code, compares concrete options, and helps you decide. It creates nothing and commits you to nothing. An exploration can be abandoned at any point with zero cleanup.
@@ -49,7 +51,7 @@ Respond with this shape:
 2. **2–3 concrete options** — each with: what it means in practice, what it costs, what it risks, and how it fits this codebase. More than three options is noise; if the space is bigger, group it.
 3. **A recommendation** — pick one and say why, plainly.
 
-Then ask focused questions only if a real fork remains. Do not interrogate; the point is to think together.
+Then ask focused questions only if a real fork remains. Do not interrogate; the point is to think together. One question at a time, each saying what the answer defines. Never ask what the code can answer — read it and cite it. Draw flows in plain ASCII (`+ - | -->`).
 
 ### Phase 4 — Iterate until it crystallizes
 
