@@ -43,14 +43,16 @@ This skill pair (below) is unchanged by the addition:
 
 ### `/spec`
 
-Guides the user through 4 phases: read project context → clarify with questions (blocks of 3–5) → draft each spec section one at a time with user confirmation → save to `specs/NN-slug.md`.
+Guides the user through 4 phases: read project context → clarify with questions → draft each spec section one at a time with user confirmation → save to `specs/NN-slug.md`.
+
+Interaction is plain chat so it works in any agent: decisions are numbered options with a recommendation (a selection tool such as `AskUserQuestion` is optional, never required), and confirmations are natural questions where any affirmative proceeds (no `[y/N]`, no magic words). Questions follow OpenSpec's explore style: verify in the code before asking, state what the answer defines, recommend with a reason, and batch only independent questions (otherwise one at a time). Section drafts are shown inside a ```` ```markdown ```` fence; flows are plain ASCII.
 
 On save, it also seeds `specs/.spec-config.yml` (default `AutoCreateBranch: true`) **only if the file is missing** — an existing config is never overwritten. This is how the `AutoCreateBranch` flag that `/spec-impl` reads gets created without the user knowing the file exists.
 
 Output file format: `specs/NN-slug.md` with a header block:
 
 ```
-> **Estado:** Borrador · **Depende de:** ... · **Fecha:** YYYY-MM-DD
+> **Estado:** Borrador · **Depende de:** ... · **Ticket:** S4-06 (optional) · **Fecha:** YYYY-MM-DD
 > **Objetivo:** One sentence.
 ```
 
@@ -75,12 +77,12 @@ Accepts `<NN-slug>` as argument. Phases:
 
 1. Locate `specs/<NN-slug>.md`.
 2. Read `**Estado:**` — abort with a standard error message if it is not exactly `Aprobado`.
-3. Resolve the branch: if the current branch is neither the default branch nor `spec-NN-slug`, treat it as an existing work branch (the ticket flow created it) and stay on it. Otherwise apply the `AutoCreateBranch` logic.
-4. Implement the spec's plan group by group: tick each step off (`- [ ]` → `- [x]`) inside the spec file as it completes a group, then stop with a mini-summary so the human can review and commit before saying "continue". At the end it verifies the acceptance criteria with real evidence and ticks only the ones it proved. `--one-shot` runs every group without the between-group pauses. It stops early only on a real ambiguity or a step that breaks the project.
+3. Resolve the branch, in this order: (a) if the current branch is neither the default branch nor `spec-NN-slug`, treat it as an existing work branch (the ticket flow created it) and stay on it; (b) otherwise, if the project-memory file defines a branch pattern (e.g. `feature/{id}-{short-description}`), build the name from it, with `{id}` taken from the spec's optional `**Ticket:**` header line (asked once if missing); (c) otherwise use `spec-NN-slug`. The `AutoCreateBranch` logic applies at (b) and (c).
+4. Implement the spec's plan group by group: tick each step off (`- [ ]` → `- [x]`) inside the spec file as it completes a group, then stop with a mini-summary so the human can review and commit; any reply that is not a stop or a change request continues (no magic word). At the end it verifies the acceptance criteria with real evidence and ticks only the ones it proved. `--one-shot` runs every group without the between-group pauses. It stops early only on a real ambiguity or a step that breaks the project.
 
 It never commits, merges, or closes the spec: the final summary hands off to `/spec-verify` and `/spec-close`.
 
-Branch creation in step 3 is gated by the `AutoCreateBranch` flag, read at skill-load time from `specs/.spec-config.yml` via a `!`cat`` snippet. Default (file or value absent) is `true` → branch is created automatically when starting from the default branch. An explicit `false` makes the skill ask `[y/N]` before creating the branch; on decline it implements on the current branch. The existing-work-branch rule takes precedence over the flag: in the ticket flow no branch is created and no question is asked. There is still no runtime config infra — the flag is just a value injected into the prompt and interpreted by the model.
+Branch creation in step 3 is gated by the `AutoCreateBranch` flag, read at skill-load time from `specs/.spec-config.yml` via a `!`cat`` snippet. Default (file or value absent) is `true` → branch is created automatically when starting from the default branch. An explicit `false` makes the skill ask in plain chat before creating the branch; on decline it implements on the current branch. The existing-work-branch rule takes precedence over the flag: in the ticket flow no branch is created and no question is asked. When the flag asks, the prompt shows the name resolved by the order above. There is still no runtime config infra — the flag is just a value injected into the prompt and interpreted by the model.
 
 At completion it prints a chat summary (steps, files, why, verified/pending criteria) and suggests `/spec-verify` followed by `/spec-close`.
 
@@ -93,8 +95,8 @@ Accepts `<NN-slug>` (same flexible matching as the other skills; with no argumen
 1. State gate: `Aprobado` → `Implementado` (file's own label and language); already `Implementado` → no change; anything else → refuse.
 2. Classify pending changes with `git status --short` into the agent's own vs foreign (manual edits, dependencies) — foreign ones are never included or reverted without explicit approval.
 3. Sync project memory: first hit of `CLAUDE.md` → `AGENTS.md` → `GEMINI.md` → `README.md`. Minimal `old → new` edits for facts this spec introduced (new dependencies, modules, commands); explicit no-op when there is nothing relevant; never a rewrite, never a changelog, no new sections without approval.
-4. One confirmation preview (state, mode, branch, commit message, memory edits, foreign changes), then a selective commit `feat(spec-NN-slug): <objetivo>` — approved memory edits travel in the same commit.
-5. Follow `CloseMode` from `specs/.spec-config.yml`, read at skill-load time: `local` merges into the default branch and safe-deletes the local branch (`-d`, never `-D`); `pr` stops after the commit and keeps the branch for the MR; missing flag → asks `[l]/[p]`. On a later run after the MR merged, it verifies the merge landed in the default branch, `git pull`, and deletes the local branch.
+4. One confirmation preview (state, mode, branch, commit message, memory edits, foreign changes), then a selective commit `feat(spec-NN-slug): <objetivo>` — approved memory edits travel in the same commit. When the project-memory file defines a commit format, that format wins and the scope is the spec's `Ticket` id (e.g. `feat(S1-11): ...`); one commit only, any per-purpose grouping stays with the human or `git-flow`.
+5. Follow `CloseMode` from `specs/.spec-config.yml`, read at skill-load time (a PR-based workflow declared in the project-memory file overrides it and forces `pr`): `local` merges into the default branch and safe-deletes the local branch (`-d`, never `-D`); `pr` stops after the commit and keeps the branch for the MR; missing flag → asks `[l]/[p]`. On a later run after the MR merged, it verifies the merge landed in the default branch, `git pull`, and deletes the local branch.
 
 It never pushes — publishing stays manual — and `git push` is deliberately absent from its `allowed-tools`.
 
@@ -108,7 +110,7 @@ It never pushes — publishing stays manual — and `git push` is deliberately a
 
 ### Tickets bridge (optional)
 
-A spec can be split into tracker tickets — one per implementation-plan group — before implementation. The ticket description carries `Spec: specs/NN-slug.md`, and the board tracks state and time while the spec remains the source of truth for scope. Working a ticket runs on a ticket work branch (`feat/<slug>`, `fix/<slug>`, …); when `/spec-impl` finds that branch active, Phase 3 reuses it instead of creating `spec-NN-slug`. The order is: approve the spec → create the tickets → work each ticket with the ticket skill → merge per ticket. This keeps the board honest without duplicating the plan; for projects using OpenSpec the same bridge works with `Change: openspec/changes/<name>` and one ticket per `tasks.md` section.
+A spec can be split into tracker tickets — one per implementation-plan group — before implementation. The ticket description carries `Spec: specs/NN-slug.md`, and the board tracks state and time while the spec remains the source of truth for scope. Working a ticket runs on a ticket work branch named by the project's convention (`feat/<slug>`, `feature/{id}-<slug>`, …); when `/spec-impl` finds that branch active, Phase 3 reuses it instead of creating a new one. The spec's optional `**Ticket:**` header line carries the task id used for branch and commit-scope naming. The order is: approve the spec → create the tickets → work each ticket with the ticket skill → merge per ticket. This keeps the board honest without duplicating the plan; for projects using OpenSpec the same bridge works with `Change: openspec/changes/<name>` and one ticket per `tasks.md` section.
 
 ## Distribution
 
